@@ -4,33 +4,29 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
-@Table(name = "modules", uniqueConstraints = @UniqueConstraint(columnNames = "module_key"))
+@Table(name = "permissions", uniqueConstraints = @UniqueConstraint(columnNames = "code"))
 @Getter
 @Setter
 @NoArgsConstructor
-public class Module {
+public class Permission {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(nullable = false)
-    private String name;
-
-    @Column(name = "module_key", nullable = false)
-    private String key;
+    private String code;
 
     private String description;
-    private String version;
 
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    @OneToMany(mappedBy = "module")
-    private List<InstalledModule> installations = new ArrayList<>();
+    @ManyToMany(mappedBy = "permissions")
+    private Set<Role> roles = new HashSet<>();
 
     @PrePersist
     private void onCreate() {

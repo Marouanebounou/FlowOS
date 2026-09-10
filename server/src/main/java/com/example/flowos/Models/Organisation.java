@@ -3,23 +3,42 @@ package com.example.flowos.Models;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.util.Date;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
-@AllArgsConstructor
+@Entity
+@Table(name = "organisations")
 @Getter
 @Setter
 @NoArgsConstructor
-@Entity(name = "organisation")
 public class Organisation {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private long id;
+    private Long id;
+
+    @Column(nullable = false)
     private String name;
+
     private String logoUrl;
-    private Date createdAt;
-    @OneToMany(mappedBy = "organisation" , cascade = CascadeType.ALL)
-    private List<OrganisationMember> organisationsMembers;
-    @OneToMany(mappedBy = "organisation" , cascade = CascadeType.ALL)
-    private List<InstalledModule> installedModuleList;
+
+    @Column(nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @OneToMany(mappedBy = "organisation", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<OrganisationMember> members = new ArrayList<>();
+
+    @OneToMany(mappedBy = "organisation", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Team> teams = new ArrayList<>();
+
+    @OneToMany(mappedBy = "organisation", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Role> roles = new ArrayList<>();
+
+    @OneToMany(mappedBy = "organisation", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<InstalledModule> installedModules = new ArrayList<>();
+
+    @PrePersist
+    private void onCreate() {
+        createdAt = LocalDateTime.now();
+    }
 }

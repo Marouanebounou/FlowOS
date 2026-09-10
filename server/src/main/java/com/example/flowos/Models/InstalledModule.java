@@ -3,23 +3,37 @@ package com.example.flowos.Models;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.util.Date;
+import java.time.LocalDateTime;
 
-@Entity(name = "installed_module")
-@AllArgsConstructor
-@NoArgsConstructor
+@Entity
+@Table(
+    name = "installed_modules",
+    uniqueConstraints = @UniqueConstraint(columnNames = {"organisation_id", "module_id"})
+)
 @Getter
 @Setter
+@NoArgsConstructor
 public class InstalledModule {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
-    private long id;
-    private Date installedAt;
-    private Boolean isActive;
-    @ManyToOne
-    @JoinColumn(name = "module_id")
-    private Module module;
-    @ManyToOne
-    @JoinColumn(name = "organisation_id")
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false)
+    private Boolean enabled = true;
+
+    @Column(nullable = false, updatable = false)
+    private LocalDateTime installedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "organisation_id", nullable = false)
     private Organisation organisation;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "module_id", nullable = false)
+    private Module module;
+
+    @PrePersist
+    private void onCreate() {
+        installedAt = LocalDateTime.now();
+    }
 }

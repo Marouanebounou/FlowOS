@@ -4,26 +4,29 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
-import java.util.HashSet;
-import java.util.Set;
 
 @Entity
-@Table(
-    name = "roles",
-    uniqueConstraints = @UniqueConstraint(columnNames = {"organisation_id", "name"})
-)
+@Table(name = "audit_logs")
 @Getter
 @Setter
 @NoArgsConstructor
-public class Role {
+public class AuditLog {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(nullable = false)
-    private String name;
+    private String action;
 
-    private String description;
+    @Column(nullable = false)
+    private String entityType;
+
+    private Long entityId;
+
+    @Column(length = 2000)
+    private String details;
+
+    private String ipAddress;
 
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -32,16 +35,9 @@ public class Role {
     @JoinColumn(name = "organisation_id", nullable = false)
     private Organisation organisation;
 
-    @ManyToMany
-    @JoinTable(
-        name = "role_permissions",
-        joinColumns = @JoinColumn(name = "role_id"),
-        inverseJoinColumns = @JoinColumn(name = "permission_id")
-    )
-    private Set<Permission> permissions = new HashSet<>();
-
-    @OneToMany(mappedBy = "role")
-    private Set<OrganisationMember> members = new HashSet<>();
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private User user;
 
     @PrePersist
     private void onCreate() {
