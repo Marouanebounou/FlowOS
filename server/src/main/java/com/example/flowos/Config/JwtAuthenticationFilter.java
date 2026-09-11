@@ -1,5 +1,6 @@
 package com.example.flowos.Config;
 
+import com.example.flowos.Repositories.BlacklistedTokenRepository;
 import com.example.flowos.Services.CustomUserDetailsService;
 import com.example.flowos.Services.JwtService;
 import jakarta.servlet.FilterChain;
@@ -21,6 +22,7 @@ import java.io.IOException;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtService jwtService;
     private final CustomUserDetailsService userDetailsService;
+    private final BlacklistedTokenRepository blacklistedTokenRepository;
 
     @Override
     protected void doFilterInternal(
@@ -36,6 +38,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         String token = authorizationHeader.substring(7);
+
+        if (blacklistedTokenRepository.existsByToken(token)) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         String email;
 
         try {

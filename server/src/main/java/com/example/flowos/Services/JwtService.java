@@ -43,6 +43,10 @@ public class JwtService {
         return email.equals(extractEmail(token)) && !isExpired(token);
     }
 
+    public Date extractExpiration(String token) {
+        return extractClaims(token).getExpiration();
+    }
+
     private boolean isExpired(String token) {
         return extractClaims(token).getExpiration().before(new Date());
     }
