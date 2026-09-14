@@ -22,6 +22,8 @@ public class Organisation {
 
     private String logoUrl;
 
+    private String primaryColor;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -36,6 +38,9 @@ public class Organisation {
 
     @OneToMany(mappedBy = "organisation", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<InstalledModule> installedModules = new ArrayList<>();
+
+    @OneToMany(mappedBy = "organisation", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<OrganisationInvitation> invitations = new ArrayList<>();
 
     @PrePersist
     private void onCreate() {

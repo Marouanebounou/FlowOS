@@ -10,4 +10,6 @@ public interface RoleRepository extends JpaRepository<Role, Long> {
     List<Role> findByOrganisationId(Long organisationId);
 
     Optional<Role> findByIdAndOrganisationId(Long id, Long organisationId);
+
+    Optional<Role> findByOrganisationIdAndNameIgnoreCase(Long organisationId, String name);
 }

@@ -110,10 +110,10 @@ sequenceDiagram
 
 ## Database Strategy
 
-During initial development, Hibernate creates and updates the schema with:
+Flyway owns schema changes. New databases run the migrations in `src/main/resources/db/migration`, while an existing non-empty development database is baselined at version `1` and receives later migrations.
+
+Hibernate validates the mapped entities without changing the schema:
 
 ```properties
-spring.jpa.hibernate.ddl-auto=update
+spring.jpa.hibernate.ddl-auto=validate
 ```
-
-Before production, replace this with Flyway migrations. Flyway is already included in the project but currently disabled in `application.properties`.

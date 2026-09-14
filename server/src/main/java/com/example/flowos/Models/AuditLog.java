@@ -31,8 +31,8 @@ public class AuditLog {
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "organisation_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "organisation_id")
     private Organisation organisation;
 
     @ManyToOne(fetch = FetchType.LAZY)

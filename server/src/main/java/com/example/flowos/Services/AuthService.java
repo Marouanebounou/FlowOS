@@ -38,8 +38,9 @@ public class AuthService {
     private final JwtService jwtService;
     private final BlacklistedTokenRepository blacklistedTokenRepository;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
+    private final AuditLogService auditLogService;
 
-    public AuthResponse register(RegisterRequest request) {
+    public AuthResponse register(RegisterRequest request, String ipAddress) {
         validateRegistration(request);
 
         String email = request.email().trim().toLowerCase(Locale.ROOT);
@@ -55,26 +56,33 @@ public class AuthService {
         user.setPassword(passwordEncoder.encode(request.password()));
 
         User savedUser = userRepository.save(user);
+        auditLogService.log("USER_REGISTERED", "USER", savedUser.getId(), null, savedUser.getEmail(), ipAddress);
         return toAuthResponse(savedUser, jwtService.generateToken(savedUser.getEmail()));
     }
 
-    public AuthResponse login(LoginRequest request) {
+    public AuthResponse login(LoginRequest request, String ipAddress) {
         if (isBlank(request.email()) || isBlank(request.password())) {
             throw new IllegalArgumentException("Email and password are required");
         }
 
         String email = request.email().trim().toLowerCase(Locale.ROOT);
-        User user = userRepository.findByEmail(email)
-            .orElseThrow(() -> new IllegalArgumentException("Invalid email or password"));
+        User user = userRepository.findByEmail(email).orElse(null);
 
-        if (!user.getActive() || !passwordEncoder.matches(request.password(), user.getPassword())) {
+        if (user == null) {
+            auditLogService.log("LOGIN_FAILED", "USER", null, "invalid_credentials", null, ipAddress);
             throw new IllegalArgumentException("Invalid email or password");
         }
 
+        if (!user.getActive() || !passwordEncoder.matches(request.password(), user.getPassword())) {
+            auditLogService.log("LOGIN_FAILED", "USER", user.getId(), "invalid_credentials", user.getEmail(), ipAddress);
+            throw new IllegalArgumentException("Invalid email or password");
+        }
+
+        auditLogService.log("LOGIN", "USER", user.getId(), null, user.getEmail(), ipAddress);
         return toAuthResponse(user, jwtService.generateToken(user.getEmail()));
     }
 
-    public void logout(String token) {
+    public void logout(String token, String email, String ipAddress) {
         if (isBlank(token)) {
             throw new IllegalArgumentException("Token is required");
         }
@@ -89,6 +97,7 @@ public class AuthService {
         );
         blacklistedTokenRepository.save(blacklistedToken);
         blacklistedTokenRepository.deleteAllExpiredBefore(LocalDateTime.now());
+        auditLogService.log("LOGOUT", "USER", null, null, email, ipAddress);
     }
 
     public void forgotPassword(ForgotPasswordRequest request) {
@@ -106,6 +115,7 @@ public class AuthService {
             resetToken.setUser(user);
             passwordResetTokenRepository.save(resetToken);
 
+            auditLogService.log("PASSWORD_RESET_REQUESTED", "USER", user.getId(), null, user.getEmail(), null);
             log.info("Password reset token for {}: {}", email, rawToken);
         });
     }
@@ -132,9 +142,10 @@ public class AuthService {
         resetToken.setUsed(true);
         passwordResetTokenRepository.save(resetToken);
         passwordResetTokenRepository.deleteAllExpiredBefore(LocalDateTime.now());
+        auditLogService.log("PASSWORD_RESET", "USER", user.getId(), null, user.getEmail(), null);
     }
 
-    public void changePassword(String email, ChangePasswordRequest request) {
+    public void changePassword(String email, ChangePasswordRequest request, String ipAddress) {
         if (isBlank(request.currentPassword()) || isBlank(request.newPassword())) {
             throw new IllegalArgumentException("Current password and new password are required");
         }
@@ -154,6 +165,7 @@ public class AuthService {
 
         user.setPassword(passwordEncoder.encode(request.newPassword()));
         userRepository.save(user);
+        auditLogService.log("PASSWORD_CHANGED", "USER", user.getId(), null, user.getEmail(), ipAddress);
     }
 
     private String hashToken(String rawToken) {
