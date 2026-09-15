@@ -29,7 +29,6 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class OrganisationInvitationService {
-    private static final String MEMBER_ROLE = "MEMBER";
     private static final long INVITATION_VALID_HOURS = 48;
 
     private final OrganisationRepository organisationRepository;
@@ -38,6 +37,7 @@ public class OrganisationInvitationService {
     private final RoleRepository roleRepository;
     private final UserRepository userRepository;
     private final AuditLogService auditLogService;
+    private final PermissionService permissionService;
     private final EmailService emailService;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
@@ -169,14 +169,7 @@ public class OrganisationInvitationService {
                 .orElseThrow(() -> new IllegalArgumentException("Role not found in this organisation"));
         }
 
-        return roleRepository.findByOrganisationIdAndNameIgnoreCase(organisationId, MEMBER_ROLE)
-            .orElseGet(() -> {
-                Role role = new Role();
-                role.setName(MEMBER_ROLE);
-                role.setDescription("Organisation member");
-                role.setOrganisation(findOrganisation(organisationId));
-                return roleRepository.save(role);
-            });
+        return permissionService.ensureMemberRole(organisationId);
     }
 
     private String normalizeEmail(String email) {

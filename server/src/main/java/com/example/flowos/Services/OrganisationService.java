@@ -11,7 +11,6 @@ import com.example.flowos.Models.Role;
 import com.example.flowos.Models.User;
 import com.example.flowos.Repositories.OrganisationMemberRepository;
 import com.example.flowos.Repositories.OrganisationRepository;
-import com.example.flowos.Repositories.RoleRepository;
 import com.example.flowos.Repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -22,11 +21,9 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class OrganisationService {
-    private static final String ADMIN_ROLE = "ADMIN";
-
     private final OrganisationRepository organisationRepository;
     private final OrganisationMemberRepository organisationMemberRepository;
-    private final RoleRepository roleRepository;
+    private final PermissionService permissionService;
     private final UserRepository userRepository;
     private final AuditLogService auditLogService;
     
@@ -40,16 +37,12 @@ public class OrganisationService {
         organisation.setPrimaryColor(normalize(request.primaryColor()));
         Organisation savedOrganisation = organisationRepository.save(organisation);
 
-        Role adminRole = new Role();
-        adminRole.setName(ADMIN_ROLE);
-        adminRole.setDescription("Organisation administrator");
-        adminRole.setOrganisation(savedOrganisation);
-        Role savedRole = roleRepository.save(adminRole);
+        Role adminRole = permissionService.createDefaultRoles(savedOrganisation);
 
         OrganisationMember member = new OrganisationMember();
         member.setOrganisation(savedOrganisation);
         member.setUser(user);
-        member.setRole(savedRole);
+        member.setRole(adminRole);
         organisationMemberRepository.save(member);
 
         auditLogService.logForOrganisation(
