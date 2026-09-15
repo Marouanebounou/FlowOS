@@ -3,26 +3,37 @@ package com.example.flowos.Models;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.util.Date;
+import java.time.LocalDateTime;
 
-@Entity(name = "team_member")
-@AllArgsConstructor
-@NoArgsConstructor
+@Entity
+@Table(
+    name = "team_members",
+    uniqueConstraints = @UniqueConstraint(columnNames = {"team_id", "organisation_member_id"})
+)
 @Getter
 @Setter
+@NoArgsConstructor
 public class TeamMember {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
-    private long id;
-    private Date addedAt;
-    private String roleInTeam;
-    @ManyToOne
-    @JoinColumn(name = "user_id")
-    private User user;
-    @ManyToOne
-    @JoinColumn(name = "team_id")
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false, updatable = false)
+    private LocalDateTime addedAt;
+
+    @Column(nullable = false)
+    private Boolean leader = false;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "team_id", nullable = false)
     private Team team;
-    @ManyToOne
-    @JoinColumn(name = "role_id")
-    private Role role;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "organisation_member_id", nullable = false)
+    private OrganisationMember organisationMember;
+
+    @PrePersist
+    private void onCreate() {
+        addedAt = LocalDateTime.now();
+    }
 }
