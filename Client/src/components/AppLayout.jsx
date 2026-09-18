@@ -57,6 +57,21 @@ export default function AppLayout() {
         <Box component="nav" sx={{ mt: 1 }}>
           <Button
             component={Link}
+            to="/dashboard"
+            fullWidth
+            sx={{
+              justifyContent: 'flex-start',
+              px: 2,
+              borderRadius: 1,
+              bgcolor: location.pathname === '/dashboard' ? 'action.selected' : 'transparent',
+              mb: 0.5,
+              textTransform: 'none',
+            }}
+          >
+            Dashboard
+          </Button>
+          <Button
+            component={Link}
             to="/organizations"
             fullWidth
             sx={{

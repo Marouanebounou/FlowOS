@@ -50,7 +50,7 @@ export default function Login() {
     setLoading(false)
 
     if (result.success) {
-      navigate('/organizations')
+      navigate('/dashboard')
     }
   }
 
@@ -88,7 +88,8 @@ export default function Login() {
               autoComplete="current-password"
               error={!!fieldErrors.password}
               helperText={fieldErrors.password}
-              InputProps={{
+              slotProps={{
+                input: {
                 endAdornment: (
                   <InputAdornment position="end">
                     <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
@@ -96,6 +97,7 @@ export default function Login() {
                     </IconButton>
                   </InputAdornment>
                 ),
+                },
               }}
             />
 
