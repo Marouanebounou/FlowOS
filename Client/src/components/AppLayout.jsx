@@ -1,6 +1,5 @@
-import { Link } from 'react-router-dom'
-import { useState } from 'react'
-import { useNavigate, useLocation, Outlet } from 'react-router-dom'
+import { Link, useNavigate, useLocation, Outlet } from 'react-router-dom'
+import { useEffect, useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import {
   Box,
@@ -13,17 +12,42 @@ import {
   MenuItem,
   IconButton,
 } from '@mui/material'
-import { AccountCircle } from '@mui/icons-material'
+import { AccountCircle, Extension, Task, Folder, CalendarToday, People, Description } from '@mui/icons-material'
+import OrganisationSwitcher from './OrganisationSwitcher'
+import { useOrganisation } from '../contexts/OrganisationContext'
+import { api } from '../api/client'
+
+const MODULE_ICONS = {
+  tasks: Task,
+  projects: Folder,
+  calendar: CalendarToday,
+  crm: People,
+  documents: Description,
+}
 
 const drawerWidth = 240
 
 export default function AppLayout() {
   const { user, logout } = useAuth()
+  const { activeId } = useOrganisation()
   const navigate = useNavigate()
   const location = useLocation()
   const [loggingOut, setLoggingOut] = useState(false)
   const [anchorEl, setAnchorEl] = useState(null)
   const open = Boolean(anchorEl)
+  const [installed, setInstalled] = useState([])
+
+  useEffect(() => {
+    let cancelled = false
+    async function fetchInstalled() {
+      if (!activeId) { setInstalled([]); return }
+      const res = await api.listInstalledModules(activeId)
+      if (!cancelled && res.status === 200) setInstalled(res.data.filter((m) => m.enabled))
+      else if (!cancelled) setInstalled([])
+    }
+    fetchInstalled()
+    return () => { cancelled = true }
+  }, [activeId])
 
   async function handleLogout() {
     setLoggingOut(true)
@@ -99,15 +123,43 @@ export default function AppLayout() {
           >
             Profile
           </Button>
+
+          {installed.length > 0 && (
+            <Box sx={{ mt: 2, px: 2 }}>
+              <Typography variant="caption" color="text.secondary" sx={{ px: 1, fontWeight: 700, textTransform: 'uppercase' }}>Modules</Typography>
+              {installed.map((mod) => {
+                const Icon = MODULE_ICONS[mod.moduleKey] || Extension
+                const to = `/organizations/${activeId}/modules/${mod.moduleKey}`
+                const active = location.pathname === to
+                return (
+                  <Button
+                    key={mod.moduleKey}
+                    component={Link}
+                    to={to}
+                    fullWidth
+                    startIcon={<Icon fontSize="small" />}
+                    sx={{
+                      justifyContent: 'flex-start',
+                      px: 2,
+                      borderRadius: 1,
+                      bgcolor: active ? 'action.selected' : 'transparent',
+                      mb: 0.5,
+                      textTransform: 'none',
+                    }}
+                  >
+                    {mod.moduleName}
+                  </Button>
+                )
+              })}
+            </Box>
+          )}
         </Box>
       </Drawer>
 
       <Box component="main" sx={{ flexGrow: 1 }}>
         <AppBar position="sticky" elevation={0} sx={{ bgcolor: 'background.paper', borderBottom: 1, borderColor: 'divider' }}>
-          <Toolbar sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Typography variant="body2" color="text.secondary">
-              Organization
-            </Typography>
+          <Toolbar sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2 }}>
+            <OrganisationSwitcher />
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <IconButton onClick={handleMenuOpen} size="small">
                 <AccountCircle />

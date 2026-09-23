@@ -32,6 +32,11 @@ import java.util.List;
 public class OrganisationController {
     private final OrganisationService organisationService;
 
+    @GetMapping
+    public ResponseEntity<List<OrganisationResponse>> list(Authentication authentication) {
+        return ResponseEntity.ok(organisationService.listForUser(authentication.getName()));
+    }
+
     @PostMapping
     public ResponseEntity<OrganisationResponse> create(
         Authentication authentication,
@@ -44,6 +49,24 @@ public class OrganisationController {
             httpRequest.getRemoteAddr()
         );
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @GetMapping("/{organisationId}/me")
+    @PreAuthorize("@permissionSecurity.isMember(authentication, #organisationId)")
+    public ResponseEntity<OrganisationUserResponse> myMembership(
+        Authentication authentication,
+        @PathVariable Long organisationId
+    ) {
+        return ResponseEntity.ok(organisationService.getMyMembership(authentication.getName(), organisationId));
+    }
+
+    @GetMapping("/{organisationId}/me/permissions")
+    @PreAuthorize("@permissionSecurity.isMember(authentication, #organisationId)")
+    public ResponseEntity<List<String>> myPermissions(
+        Authentication authentication,
+        @PathVariable Long organisationId
+    ) {
+        return ResponseEntity.ok(organisationService.getMyPermissions(authentication.getName(), organisationId));
     }
 
     @GetMapping("/{organisationId}")
