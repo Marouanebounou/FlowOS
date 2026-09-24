@@ -41,9 +41,6 @@ public class User {
     private List<OrganisationMember> organisationMemberships = new ArrayList<>();
 
     @OneToMany(mappedBy = "user")
-    private List<TeamMember> teamMemberships = new ArrayList<>();
-
-    @OneToMany(mappedBy = "user")
     private List<Notification> notifications = new ArrayList<>();
 
     @PrePersist

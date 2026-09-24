@@ -67,7 +67,7 @@ CREATE TABLE IF NOT EXISTS notifications (
     title VARCHAR(255) NOT NULL,
     message VARCHAR(2000) NOT NULL,
     type VARCHAR(255) NOT NULL,
-    read BIT NOT NULL,
+    `read` BIT NOT NULL,
     created_at DATETIME(6) NOT NULL,
     user_id BIGINT NOT NULL,
     PRIMARY KEY (id),

@@ -9,6 +9,11 @@ import java.util.List;
 import java.util.Optional;
 
 public interface OrganisationMemberRepository extends JpaRepository<OrganisationMember, Long> {
+    @Query("select m from OrganisationMember m join fetch m.organisation where m.user.email = :email")
+    List<OrganisationMember> findByUserEmail(@Param("email") String email);
+
+    Optional<OrganisationMember> findByOrganisationIdAndUserEmail(Long organisationId, String email);
+
     List<OrganisationMember> findByOrganisationId(Long organisationId);
 
     Optional<OrganisationMember> findByOrganisationIdAndUserId(Long organisationId, Long userId);

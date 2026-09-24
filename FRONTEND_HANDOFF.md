@@ -344,7 +344,7 @@ All fields are optional. If provided, first and last names cannot be blank. The 
 
 ### Update an organization member profile
 
-`PATCH /api/v1/organisations/{organisationId}/users/{userId}`  
+`PATCH /api/v1/users/organisations/{organisationId}/users/{userId}`  
 **Auth:** Required  
 **Authorization:** Organization admin  
 **Response:** `200 UserProfileResponse`
@@ -528,6 +528,8 @@ The email is taken from the invitation and is not supplied by the frontend. The 
 - An existing inactive user who is being activated.
 - An existing active member, which must be shown as an error.
 
+For a new account, first name, last name, and password are required. These requirements are validated in the service layer, so missing values can return a general business-rule error instead of field-level validation errors.
+
 After success, store the returned auth state and navigate to the invited organization.
 
 ## 7. Team Endpoints
@@ -639,6 +641,7 @@ No body. The backend clears the previous leader and adds the selected active org
 **Response:** `200 PermissionResponse[]`
 
 This returns the global permission catalog. There is also a dedicated permissions CRUD resource below.
+Use this endpoint to load permissions for the role editor; it enforces `permission.read` before returning the catalog.
 
 ### Create a role
 

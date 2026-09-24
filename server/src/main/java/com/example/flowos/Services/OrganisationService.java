@@ -59,8 +59,31 @@ public class OrganisationService {
     }
 
     @Transactional(readOnly = true)
+    public List<OrganisationResponse> listForUser(String email) {
+        return organisationMemberRepository.findByUserEmail(email).stream()
+            .map(member -> OrganisationResponse.from(member.getOrganisation()))
+            .toList();
+    }
+
+    @Transactional(readOnly = true)
     public OrganisationResponse getById(Long organisationId) {
         return OrganisationResponse.from(findOrganisation(organisationId));
+    }
+
+    @Transactional(readOnly = true)
+    public OrganisationUserResponse getMyMembership(String email, Long organisationId) {
+        return organisationMemberRepository.findByOrganisationIdAndUserEmail(organisationId, email)
+            .map(OrganisationUserResponse::from)
+            .orElseThrow(() -> new IllegalArgumentException("You are not a member of this organisation"));
+    }
+
+    @Transactional(readOnly = true)
+    public List<String> getMyPermissions(String email, Long organisationId) {
+        OrganisationMember member = organisationMemberRepository.findByOrganisationIdAndUserEmail(organisationId, email)
+            .orElseThrow(() -> new IllegalArgumentException("You are not a member of this organisation"));
+        return member.getRole().getPermissions().stream()
+            .map(p -> p.getCode())
+            .toList();
     }
 
     @Transactional(readOnly = true)

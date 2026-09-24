@@ -24,7 +24,7 @@ public class Notification {
     @Column(nullable = false)
     private String type;
 
-    @Column(nullable = false)
+    @Column(name = "`read`", nullable = false)
     private Boolean read = false;
 
     @Column(nullable = false, updatable = false)
