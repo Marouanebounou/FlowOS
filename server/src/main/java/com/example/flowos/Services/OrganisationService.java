@@ -26,7 +26,7 @@ public class OrganisationService {
     private final PermissionService permissionService;
     private final UserRepository userRepository;
     private final AuditLogService auditLogService;
-    
+
     @Transactional
     public OrganisationResponse create(String email, CreateOrganisationRequest request, String ipAddress) {
         User user = findUser(email);

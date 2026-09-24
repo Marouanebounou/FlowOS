@@ -19,14 +19,12 @@ export default function RolesTab({ organisationId, canRead, canCreate, canUpdate
   const [formError, setFormError] = useState(null)
   const [submitting, setSubmitting] = useState(false)
 
-  // permission assign
   const [assignOpen, setAssignOpen] = useState(false)
   const [assignRole, setAssignRole] = useState(null)
   const [selectedCodes, setSelectedCodes] = useState([])
   const [assignSubmitting, setAssignSubmitting] = useState(false)
 
-  // permission catalog inline
-  const [permTab, setPermTab] = useState(false) // false = roles, true = catalog
+  const [permTab, setPermTab] = useState(false) 
   const [permForm, setPermForm] = useState({ code: '', description: '' })
   const [permDialogOpen, setPermDialogOpen] = useState(false)
   const [editingPerm, setEditingPerm] = useState(null)
@@ -92,7 +90,6 @@ export default function RolesTab({ organisationId, canRead, canCreate, canUpdate
     } else setSnack({ severity: 'error', message: res.error?.message || 'Assign failed' })
   }
 
-  // permission catalog crud
   function openPermCreate() { setEditingPerm(null); setPermForm({ code: '', description: '' }); setPermDialogOpen(true) }
   function openPermEdit(p) { setEditingPerm(p); setPermForm({ code: p.code, description: p.description || '' }); setPermDialogOpen(true) }
 

@@ -11,20 +11,18 @@ export default function TeamsTab({ organisationId, canRead, canCreate, canUpdate
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [filter, setFilter] = useState('')
-  const [expanded, setExpanded] = useState(null) // teamId
-  const [membersByTeam, setMembersByTeam] = useState({}) // teamId -> members
+  const [expanded, setExpanded] = useState(null) 
+  const [membersByTeam, setMembersByTeam] = useState({}) 
   const [membersLoading, setMembersLoading] = useState({})
-  const [orgMembers, setOrgMembers] = useState([]) // for add selector
+  const [orgMembers, setOrgMembers] = useState([]) 
   const [snack, setSnack] = useState(null)
 
-  // create/edit dialog
   const [dialogOpen, setDialogOpen] = useState(false)
-  const [editing, setEditing] = useState(null) // team or null
+  const [editing, setEditing] = useState(null) 
   const [formName, setFormName] = useState('')
   const [formError, setFormError] = useState(null)
   const [submitting, setSubmitting] = useState(false)
 
-  // add member
   const [addMemberTeam, setAddMemberTeam] = useState(null)
   const [selectedUserId, setSelectedUserId] = useState('')
 
@@ -97,10 +95,10 @@ export default function TeamsTab({ organisationId, canRead, canCreate, canUpdate
     if (res.status === 201) {
       setSnack({ severity: 'success', message: 'Member added' })
       setSelectedUserId('')
-      // refresh members
+
       const mRes = await api.listTeamMembers(organisationId, teamId)
       if (mRes.status === 200) setMembersByTeam((prev) => ({ ...prev, [teamId]: mRes.data }))
-      // also refresh teams to update memberCount
+
       fetchTeams()
     } else setSnack({ severity: 'error', message: res.error?.message || 'Failed to add' })
     setAddMemberTeam(null)

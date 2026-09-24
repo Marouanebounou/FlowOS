@@ -43,7 +43,7 @@ export default function MembersTab({ organisationId, isAdmin = true }) {
   const [inviteFieldErrors, setInviteFieldErrors] = useState({})
   const [inviting, setInviting] = useState(false)
   const [snack, setSnack] = useState(null)
-  const [actionLoading, setActionLoading] = useState(null) // userId
+  const [actionLoading, setActionLoading] = useState(null) 
   const [editOpen, setEditOpen] = useState(false)
   const [editMember, setEditMember] = useState(null)
   const [editForm, setEditForm] = useState({ firstName: '', lastName: '', phoneNumber: '' })
@@ -112,7 +112,7 @@ export default function MembersTab({ organisationId, isAdmin = true }) {
         email: inviteForm.email.trim().toLowerCase(),
         roleId: inviteForm.roleId ? Number(inviteForm.roleId) : null,
       }
-      // remove null roleId to use default MEMBER
+
       if (!payload.roleId) delete payload.roleId
       const result = await api.inviteUser(organisationId, payload)
       if (result.status === 202 || result.status === 204) {
@@ -160,7 +160,7 @@ export default function MembersTab({ organisationId, isAdmin = true }) {
     setEditSaving(false)
     if (result.status === 200) {
       setEditOpen(false)
-      // refresh list to get updated names; API returns UserProfileResponse not OrganisationUserResponse, so refetch
+
       fetchMembers()
       setSnack({ severity: 'success', message: 'Member profile updated' })
     } else {

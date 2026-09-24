@@ -15,6 +15,11 @@ const OrganizationDetail = lazy(() => import('./pages/OrganizationDetail'))
 const Profile = lazy(() => import('./pages/Profile'))
 const InvitationAccept = lazy(() => import('./pages/InvitationAccept'))
 const ModulePlaceholder = lazy(() => import('./pages/ModulePlaceholder'))
+const TasksPage = lazy(() => import('./pages/TasksPage'))
+const ProjectsPage = lazy(() => import('./pages/ProjectsPage'))
+const CalendarPage = lazy(() => import('./pages/CalendarPage'))
+const CrmPage = lazy(() => import('./pages/CrmPage'))
+const DocumentsPage = lazy(() => import('./pages/DocumentsPage'))
 
 function ProtectedRoute({ children }) {
   const { isAuthenticated, loading } = useAuth()
@@ -43,6 +48,11 @@ function AppRoutes() {
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="organizations" element={<Organizations />} />
           <Route path="organizations/:organisationId" element={<OrganizationDetail />} />
+          <Route path="organizations/:organisationId/modules/tasks" element={<TasksPage />} />
+          <Route path="organizations/:organisationId/modules/projects" element={<ProjectsPage />} />
+          <Route path="organizations/:organisationId/modules/calendar" element={<CalendarPage />} />
+          <Route path="organizations/:organisationId/modules/crm" element={<CrmPage />} />
+          <Route path="organizations/:organisationId/modules/documents" element={<DocumentsPage />} />
           <Route path="organizations/:organisationId/modules/:moduleKey" element={<ModulePlaceholder />} />
           <Route path="profile" element={<Profile />} />
           <Route path="*" element={<Box sx={{ maxWidth: 800, mx: 'auto', py: 4 }}><Card><CardContent><Typography variant="h4">Not Found</Typography><Typography variant="body1" sx={{ mt: 2 }}>The page you are looking for does not exist.</Typography></CardContent></Card></Box>} />

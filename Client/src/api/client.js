@@ -42,7 +42,7 @@ async function request(path, options = {}) {
       localStorage.removeItem(TOKEN_KEY)
       localStorage.removeItem('flowos_user')
     } catch {
-      // ignore
+
     }
     window.dispatchEvent(new CustomEvent('auth:logout'))
     return { data: null, status: 401, error: { message: 'Session expired' } }
@@ -54,7 +54,7 @@ async function request(path, options = {}) {
   }
 
   if (response.status === 204 || response.status === 202) {
-    // 202 Accepted from invitations has no body - handle empty response
+
     const contentLength = response.headers.get('content-length')
     const contentType = response.headers.get('content-type') || ''
     if (contentLength === '0' || !contentType.includes('application/json')) {
@@ -68,7 +68,6 @@ async function request(path, options = {}) {
     }
   }
 
-  // handle empty success bodies gracefully
   const contentType = response.headers.get('content-type') || ''
   if (!contentType.includes('application/json')) {
     return { data: null, status: response.status }
@@ -88,7 +87,7 @@ export const api = {
       if (token) localStorage.setItem(TOKEN_KEY, token)
       else localStorage.removeItem(TOKEN_KEY)
     } catch {
-      // ignore
+
     }
   },
   clearToken() {
@@ -97,7 +96,7 @@ export const api = {
       localStorage.removeItem(TOKEN_KEY)
       localStorage.removeItem('flowos_user')
     } catch {
-      // ignore
+
     }
   },
   getToken() {
@@ -231,6 +230,73 @@ export const api = {
   assignTeamLeader(organisationId, teamId, userId) {
     return request(`/organisations/${organisationId}/teams/${teamId}/leader/${userId}`, { method: 'PUT' })
   },
+
+  listTasks(organisationId, teamId) {
+    return request(`/organisations/${organisationId}/teams/${teamId}/tasks`)
+  },
+  createTask(organisationId, teamId, data) {
+    return request(`/organisations/${organisationId}/teams/${teamId}/tasks`, { method: 'POST', body: JSON.stringify(data) })
+  },
+  updateTask(organisationId, teamId, taskId, data) {
+    return request(`/organisations/${organisationId}/teams/${teamId}/tasks/${taskId}`, { method: 'PUT', body: JSON.stringify(data) })
+  },
+  deleteTask(organisationId, teamId, taskId) {
+    return request(`/organisations/${organisationId}/teams/${teamId}/tasks/${taskId}`, { method: 'DELETE' })
+  },
+  assignTask(organisationId, teamId, taskId, userId) {
+    return request(`/organisations/${organisationId}/teams/${teamId}/tasks/${taskId}/assign/${userId}`, { method: 'PUT' })
+  },
+  listProjects(organisationId, teamId) {
+    return request(`/organisations/${organisationId}/teams/${teamId}/projects`)
+  },
+  createProject(organisationId, teamId, data) {
+    return request(`/organisations/${organisationId}/teams/${teamId}/projects`, { method: 'POST', body: JSON.stringify(data) })
+  },
+  updateProject(organisationId, teamId, projectId, data) {
+    return request(`/organisations/${organisationId}/teams/${teamId}/projects/${projectId}`, { method: 'PUT', body: JSON.stringify(data) })
+  },
+  deleteProject(organisationId, teamId, projectId) {
+    return request(`/organisations/${organisationId}/teams/${teamId}/projects/${projectId}`, { method: 'DELETE' })
+  },
+  listCalendar(organisationId, teamId) {
+    const qs = teamId ? `?teamId=${teamId}` : ''
+    return request(`/organisations/${organisationId}/calendar${qs}`)
+  },
+  createCalendarEvent(organisationId, data) {
+    return request(`/organisations/${organisationId}/calendar`, { method: 'POST', body: JSON.stringify(data) })
+  },
+  updateCalendarEvent(organisationId, eventId, data) {
+    return request(`/organisations/${organisationId}/calendar/${eventId}`, { method: 'PUT', body: JSON.stringify(data) })
+  },
+  deleteCalendarEvent(organisationId, eventId) {
+    return request(`/organisations/${organisationId}/calendar/${eventId}`, { method: 'DELETE' })
+  },
+  listCrm(organisationId, teamId) {
+    const qs = teamId ? `?teamId=${teamId}` : ''
+    return request(`/organisations/${organisationId}/crm${qs}`)
+  },
+  createCrmContact(organisationId, data) {
+    return request(`/organisations/${organisationId}/crm`, { method: 'POST', body: JSON.stringify(data) })
+  },
+  updateCrmContact(organisationId, contactId, data) {
+    return request(`/organisations/${organisationId}/crm/${contactId}`, { method: 'PUT', body: JSON.stringify(data) })
+  },
+  deleteCrmContact(organisationId, contactId) {
+    return request(`/organisations/${organisationId}/crm/${contactId}`, { method: 'DELETE' })
+  },
+  listDocuments(organisationId, teamId) {
+    const qs = teamId ? `?teamId=${teamId}` : ''
+    return request(`/organisations/${organisationId}/documents${qs}`)
+  },
+  createDocument(organisationId, data) {
+    return request(`/organisations/${organisationId}/documents`, { method: 'POST', body: JSON.stringify(data) })
+  },
+  updateDocument(organisationId, documentId, data) {
+    return request(`/organisations/${organisationId}/documents/${documentId}`, { method: 'PUT', body: JSON.stringify(data) })
+  },
+  deleteDocument(organisationId, documentId) {
+    return request(`/organisations/${organisationId}/documents/${documentId}`, { method: 'DELETE' })
+  },
   listRolesFull(organisationId) {
     return request(`/organisations/${organisationId}/roles`)
   },
@@ -275,6 +341,18 @@ export const api = {
       method: 'PATCH',
       body: JSON.stringify({ enabled }),
     })
+  },
+  setModuleResponsable(organisationId, moduleKey, userId) {
+    return request(`/organisations/${organisationId}/modules/${encodeURIComponent(moduleKey)}/responsable/${userId}`, { method: 'PUT' })
+  },
+  listModuleTeams(organisationId, moduleKey) {
+    return request(`/organisations/${organisationId}/modules/${encodeURIComponent(moduleKey)}/teams`)
+  },
+  addModuleTeam(organisationId, moduleKey, teamId) {
+    return request(`/organisations/${organisationId}/modules/${encodeURIComponent(moduleKey)}/teams/${teamId}`, { method: 'POST' })
+  },
+  removeModuleTeam(organisationId, moduleKey, teamId) {
+    return request(`/organisations/${organisationId}/modules/${encodeURIComponent(moduleKey)}/teams/${teamId}`, { method: 'DELETE' })
   },
   updateOrganization(organisationId, data) {
     return request(`/organisations/${organisationId}`, { method: 'PUT', body: JSON.stringify(data) })

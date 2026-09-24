@@ -5,10 +5,17 @@ import com.example.flowos.Dto.ModuleResponse;
 import com.example.flowos.Models.InstalledModule;
 import com.example.flowos.Models.Module;
 import com.example.flowos.Models.Organisation;
+import com.example.flowos.Dto.ModuleTeamResponse;
+import com.example.flowos.Models.ModuleTeam;
+import com.example.flowos.Models.Team;
+import com.example.flowos.Models.User;
 import com.example.flowos.Repositories.InstalledModuleRepository;
 import com.example.flowos.Repositories.ModuleRepository;
+import com.example.flowos.Repositories.ModuleTeamRepository;
 import com.example.flowos.Repositories.OrganisationMemberRepository;
 import com.example.flowos.Repositories.OrganisationRepository;
+import com.example.flowos.Repositories.TeamRepository;
+import com.example.flowos.Repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -21,6 +28,9 @@ import java.util.List;
 public class ModuleService {
     private final ModuleRepository moduleRepository;
     private final InstalledModuleRepository installedModuleRepository;
+    private final ModuleTeamRepository moduleTeamRepository;
+    private final TeamRepository teamRepository;
+    private final UserRepository userRepository;
     private final OrganisationRepository organisationRepository;
     private final OrganisationMemberRepository organisationMemberRepository;
     private final PermissionSecurity permissionSecurity;
@@ -28,13 +38,13 @@ public class ModuleService {
 
     @Transactional(readOnly = true)
     public List<ModuleResponse> catalog(String email) {
-        // any authenticated user can view catalog
+
         return moduleRepository.findAll().stream().map(ModuleResponse::from).toList();
     }
 
     @Transactional(readOnly = true)
     public List<InstalledModuleResponse> installed(String email, Long organisationId) {
-        // any member can see installed modules
+
         if (!organisationMemberRepository.existsByOrganisationIdAndUserEmailAndActiveTrue(organisationId, email)) {
             throw new AccessDeniedException("Not a member of this organisation");
         }
@@ -86,8 +96,71 @@ public class ModuleService {
         return InstalledModuleResponse.from(saved);
     }
 
+    @Transactional
+    public InstalledModuleResponse setResponsable(String email, Long organisationId, String moduleKey, Long userId, String ipAddress) {
+        if (!isAdmin(email, organisationId)) throw new AccessDeniedException("Admin required");
+        Module module = moduleRepository.findByKey(moduleKey).orElseThrow(() -> new IllegalArgumentException("Module not found"));
+        InstalledModule im = installedModuleRepository.findByOrganisationIdAndModuleId(organisationId, module.getId())
+            .orElseThrow(() -> new IllegalArgumentException("Module not installed"));
+        User user = userRepository.findById(userId).orElseThrow(() -> new IllegalArgumentException("User not found"));
+        if (organisationMemberRepository.findByOrganisationIdAndUserId(organisationId, userId).isEmpty())
+            throw new IllegalArgumentException("User is not a member of this organisation");
+        im.setResponsable(user);
+        InstalledModule saved = installedModuleRepository.save(im);
+        auditLogService.logForOrganisation("MODULE_RESPONSABLE_SET", "MODULE", saved.getId(), "user=" + userId, email, organisationId, ipAddress);
+        return InstalledModuleResponse.from(saved);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ModuleTeamResponse> listModuleTeams(String email, Long organisationId, String moduleKey) {
+        if (!organisationMemberRepository.existsByOrganisationIdAndUserEmailAndActiveTrue(organisationId, email))
+            throw new AccessDeniedException("Not a member");
+        Module module = moduleRepository.findByKey(moduleKey).orElseThrow(() -> new IllegalArgumentException("Module not found"));
+        InstalledModule im = installedModuleRepository.findByOrganisationIdAndModuleId(organisationId, module.getId())
+            .orElseThrow(() -> new IllegalArgumentException("Module not installed"));
+        return moduleTeamRepository.findByInstalledModuleId(im.getId()).stream().map(ModuleTeamResponse::from).toList();
+    }
+
+    @Transactional
+    public ModuleTeamResponse addModuleTeam(String email, Long organisationId, String moduleKey, Long teamId, String ipAddress) {
+        if (!isAdminOrResponsable(email, organisationId, moduleKey)) throw new AccessDeniedException("Admin or responsable required");
+        Module module = moduleRepository.findByKey(moduleKey).orElseThrow(() -> new IllegalArgumentException("Module not found"));
+        InstalledModule im = installedModuleRepository.findByOrganisationIdAndModuleId(organisationId, module.getId())
+            .orElseThrow(() -> new IllegalArgumentException("Module not installed"));
+        Team team = teamRepository.findByIdAndOrganisationId(teamId, organisationId).orElseThrow(() -> new IllegalArgumentException("Team not found"));
+        moduleTeamRepository.findByInstalledModuleIdAndTeamId(im.getId(), teamId).ifPresent(mt -> { throw new IllegalArgumentException("Team already assigned to this module"); });
+        User actor = userRepository.findByEmail(email).orElseThrow();
+        ModuleTeam mt = new ModuleTeam();
+        mt.setInstalledModule(im);
+        mt.setTeam(team);
+        mt.setAddedBy(actor);
+        ModuleTeam saved = moduleTeamRepository.save(mt);
+        auditLogService.logForOrganisation("MODULE_TEAM_ADDED", "MODULE", im.getId(), "team=" + teamId, email, organisationId, ipAddress);
+        return ModuleTeamResponse.from(saved);
+    }
+
+    @Transactional
+    public void removeModuleTeam(String email, Long organisationId, String moduleKey, Long teamId, String ipAddress) {
+        if (!isAdminOrResponsable(email, organisationId, moduleKey)) throw new AccessDeniedException("Admin or responsable required");
+        Module module = moduleRepository.findByKey(moduleKey).orElseThrow(() -> new IllegalArgumentException("Module not found"));
+        InstalledModule im = installedModuleRepository.findByOrganisationIdAndModuleId(organisationId, module.getId())
+            .orElseThrow(() -> new IllegalArgumentException("Module not installed"));
+        ModuleTeam mt = moduleTeamRepository.findByInstalledModuleIdAndTeamId(im.getId(), teamId)
+            .orElseThrow(() -> new IllegalArgumentException("Team not assigned to this module"));
+        moduleTeamRepository.delete(mt);
+        auditLogService.logForOrganisation("MODULE_TEAM_REMOVED", "MODULE", im.getId(), "team=" + teamId, email, organisationId, ipAddress);
+    }
+
     private boolean isAdmin(String email, Long organisationId) {
         return organisationMemberRepository.existsByOrganisationIdAndUserEmailAndActiveTrueAndRoleNameIgnoreCase(organisationId, email, "ADMIN");
+    }
+
+    private boolean isAdminOrResponsable(String email, Long organisationId, String moduleKey) {
+        if (isAdmin(email, organisationId)) return true;
+        Module module = moduleRepository.findByKey(moduleKey).orElse(null);
+        if (module == null) return false;
+        InstalledModule im = installedModuleRepository.findByOrganisationIdAndModuleId(organisationId, module.getId()).orElse(null);
+        return im != null && im.getResponsable() != null && im.getResponsable().getEmail().equalsIgnoreCase(email);
     }
 
     private Organisation findOrganisation(Long id) {

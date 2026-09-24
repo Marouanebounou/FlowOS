@@ -13,7 +13,10 @@ public record InstalledModuleResponse(
     String description,
     String version,
     Boolean enabled,
-    LocalDateTime installedAt
+    LocalDateTime installedAt,
+    Long responsableId,
+    String responsableName,
+    String responsableEmail
 ) {
     public static InstalledModuleResponse from(InstalledModule im) {
         return new InstalledModuleResponse(
@@ -25,7 +28,10 @@ public record InstalledModuleResponse(
             im.getModule().getDescription(),
             im.getModule().getVersion(),
             im.getEnabled(),
-            im.getInstalledAt()
+            im.getInstalledAt(),
+            im.getResponsable() != null ? im.getResponsable().getId() : null,
+            im.getResponsable() != null ? im.getResponsable().getFirstName() + " " + im.getResponsable().getLastName() : null,
+            im.getResponsable() != null ? im.getResponsable().getEmail() : null
         );
     }
 }
