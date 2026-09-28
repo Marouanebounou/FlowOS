@@ -4,6 +4,8 @@ import {
 } from '@mui/material'
 import { Visibility, VisibilityOff, Person, Lock, Badge, Email } from '@mui/icons-material'
 import { useAuth } from '../contexts/AuthContext'
+import { profileSchema, changePasswordSchema } from '../validation/schemas'
+import { getErrors, getError } from '../validation/validate'
 
 export default function Profile() {
   const { user, fetchProfile, updateProfile, changePassword } = useAuth()
@@ -46,13 +48,7 @@ export default function Profile() {
   }, [])
 
   function validateProfile() {
-    const e = {}
-    if (!firstName.trim()) e.firstName = 'First name is required'
-    else if (firstName.trim().length > 255) e.firstName = 'Max 255'
-    if (!lastName.trim()) e.lastName = 'Last name is required'
-    else if (lastName.trim().length > 255) e.lastName = 'Max 255'
-    if (phoneNumber && phoneNumber.trim() && !/^[\d+()\-\\s]+$/.test(phoneNumber.trim())) e.phoneNumber = 'Phone number is invalid'
-    return e
+    return getErrors(profileSchema, { firstName, lastName, phoneNumber })
   }
 
   async function handleProfileSubmit(e) {
@@ -70,9 +66,8 @@ export default function Profile() {
   async function handlePasswordSubmit(e) {
     e.preventDefault()
     setPasswordError(null); setPasswordSuccess(false)
-    if (!currentPassword) { setPasswordError('Current password is required'); return }
-    if (newPassword.length < 8) { setPasswordError('New password must be at least 8 characters'); return }
-    if (newPassword !== confirmPassword) { setPasswordError('Passwords do not match'); return }
+    const validationError = getError(changePasswordSchema, { currentPassword, newPassword, confirmPassword })
+    if (validationError) { setPasswordError(validationError); return }
     setPasswordSaving(true)
     const result = await changePassword({ currentPassword, newPassword })
     setPasswordSaving(false)

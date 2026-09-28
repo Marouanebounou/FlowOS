@@ -3,6 +3,8 @@ import { Box, Card, CardContent, Typography, TextField, Button, Alert, Divider, 
 import { Save, DeleteForever } from '@mui/icons-material'
 import { api } from '../api/client'
 import { useOrganisation } from '../contexts/OrganisationContext'
+import { organizationDetailsSchema, brandingSchema } from '../validation/schemas'
+import { getError } from '../validation/validate'
 
 export default function SettingsTab({ organisation, onUpdated, onDeleted }) {
   const { refresh } = useOrganisation()
@@ -25,9 +27,8 @@ export default function SettingsTab({ organisation, onUpdated, onDeleted }) {
   async function handleDetailsSave(e) {
     e.preventDefault()
     setDetailsError(null); setDetailsSuccess(null)
-    if (!details.name.trim()) { setDetailsError('Organisation name is required'); return }
-    if (details.name.trim().length > 255) { setDetailsError('Max 255 characters'); return }
-    if (details.logoUrl && details.logoUrl.length > 500) { setDetailsError('Logo URL max 500'); return }
+    const detailsValidationError = getError(organizationDetailsSchema, { name: details.name, logoUrl: details.logoUrl })
+    if (detailsValidationError) { setDetailsError(detailsValidationError); return }
     setDetailsSaving(true)
     const res = await api.updateOrganization(organisation.id, { name: details.name.trim(), logoUrl: details.logoUrl.trim() || null })
     setDetailsSaving(false)
@@ -42,6 +43,8 @@ export default function SettingsTab({ organisation, onUpdated, onDeleted }) {
   async function handleBrandingSave(e) {
     e.preventDefault()
     setBrandingError(null); setBrandingSuccess(null)
+    const brandingValidationError = getError(brandingSchema, branding)
+    if (brandingValidationError) { setBrandingError(brandingValidationError); return }
     const payload = {}
     if (branding.name.trim()) {
       if (branding.name.trim().length > 255) { setBrandingError('Name max 255'); return }

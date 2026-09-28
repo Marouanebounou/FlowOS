@@ -3,6 +3,8 @@ import { useNavigate, Link } from 'react-router-dom'
 import { Box, Card, CardContent, TextField, Button, Typography, Link as MuiLink, Alert, InputAdornment, IconButton } from '@mui/material'
 import { Visibility, VisibilityOff } from '@mui/icons-material'
 import { useAuth } from '../contexts/AuthContext'
+import { registerSchema } from '../validation/schemas'
+import { getErrors } from '../validation/validate'
 
 export default function Register() {
   const [form, setForm] = useState({ firstName: '', lastName: '', email: '', password: '', confirmPassword: '' })
@@ -15,16 +17,7 @@ export default function Register() {
 
   function update(field) { return (e) => setForm((c) => ({ ...c, [field]: e.target.value })) }
   function validate() {
-    const e = {}
-    if (!form.firstName.trim()) e.firstName = 'First name is required'
-    if (!form.lastName.trim()) e.lastName = 'Last name is required'
-    if (!form.email.trim()) e.email = 'Email is required'
-    else if (!/\S+@\S+\.\S+/.test(form.email)) e.email = 'Email must be valid'
-    if (!form.password) e.password = 'Password is required'
-    else if (form.password.length < 8) e.password = 'Min 8 characters'
-    if (!form.confirmPassword) e.confirmPassword = 'Please confirm password'
-    else if (form.password !== form.confirmPassword) e.confirmPassword = 'Passwords do not match'
-    return e
+    return getErrors(registerSchema, form)
   }
 
   async function handleSubmit(e) {

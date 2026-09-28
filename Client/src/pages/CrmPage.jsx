@@ -7,6 +7,8 @@ import {
 import { Add, Edit, Delete, Refresh, People } from '@mui/icons-material'
 import { api } from '../api/client'
 import { useOrganisation } from '../contexts/OrganisationContext'
+import { crmSchema } from '../validation/schemas'
+import { getError } from '../validation/validate'
 
 const STATUSES = ['NEW', 'CONTACTED', 'QUALIFIED', 'CUSTOMER']
 const STATUS_COLOR = { NEW: 'default', CONTACTED: 'info', QUALIFIED: 'warning', CUSTOMER: 'success' }
@@ -70,7 +72,8 @@ export default function CrmPage() {
 
   async function handleSubmit(e) {
     e.preventDefault()
-    if (!form.name.trim()) { setFormError('Name is required'); return }
+    const validationError = getError(crmSchema, { name: form.name })
+    if (validationError) { setFormError(validationError); return }
     setSubmitting(true); setFormError(null)
     const payload = {
       name: form.name.trim(),

@@ -7,6 +7,8 @@ import {
 import { Add, Edit, Delete, Refresh, Description, Link as LinkIcon } from '@mui/icons-material'
 import { api } from '../api/client'
 import { useOrganisation } from '../contexts/OrganisationContext'
+import { documentSchema } from '../validation/schemas'
+import { getError } from '../validation/validate'
 
 export default function DocumentsPage() {
   const { organisationId } = useParams()
@@ -67,9 +69,8 @@ export default function DocumentsPage() {
 
   async function handleSubmit(e) {
     e.preventDefault()
-    if (!form.name.trim()) { setFormError('Name is required'); return }
-    if (!form.fileUrl.trim()) { setFormError('File URL is required'); return }
-    try { new URL(form.fileUrl.trim()); } catch { setFormError('File URL must be valid'); return }
+    const validationError = getError(documentSchema, { name: form.name, fileUrl: form.fileUrl })
+    if (validationError) { setFormError(validationError); return }
     setSubmitting(true); setFormError(null)
     const payload = {
       name: form.name.trim(),

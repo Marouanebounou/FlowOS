@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Box, Card, CardContent, TextField, Button, Typography, Alert, Link as MuiLink } from '@mui/material'
 import { api } from '../api/client'
+import { forgotPasswordSchema } from '../validation/schemas'
+import { getError } from '../validation/validate'
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('')
@@ -12,7 +14,8 @@ export default function ForgotPassword() {
   async function handleSubmit(e) {
     e.preventDefault()
     setError(null)
-    if (!email.trim() || !/\S+@\S+\.\S+/.test(email)) { setError('Valid email is required'); return }
+    const validationError = getError(forgotPasswordSchema, { email })
+    if (validationError) { setError(validationError); return }
     setLoading(true)
     const result = await api.forgotPassword(email.trim())
     setLoading(false)

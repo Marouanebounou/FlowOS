@@ -1,4 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
+import { inviteMemberSchema, editMemberSchema } from '../validation/schemas'
+import { getErrors } from '../validation/validate'
 import {
   Box,
   Card,
@@ -93,11 +95,7 @@ export default function MembersTab({ organisationId, isAdmin = true }) {
   }
 
   function validateInvite() {
-    const e = {}
-    if (!inviteForm.email.trim()) e.email = 'Email is required'
-    else if (!/\S+@\S+\.\S+/.test(inviteForm.email)) e.email = 'Email must be valid'
-    if (inviteForm.roleId && isNaN(Number(inviteForm.roleId))) e.roleId = 'Invalid role'
-    return e
+    return getErrors(inviteMemberSchema, inviteForm)
   }
 
   async function handleInviteSubmit(ev) {
@@ -140,11 +138,7 @@ export default function MembersTab({ organisationId, isAdmin = true }) {
   }
 
   function validateEdit() {
-    const e = {}
-    if (!editForm.firstName.trim()) e.firstName = 'First name is required'
-    if (!editForm.lastName.trim()) e.lastName = 'Last name is required'
-    if (editForm.phoneNumber && !/^[\d+()\-\\s]+$/.test(editForm.phoneNumber)) e.phoneNumber = 'Phone number is invalid'
-    return e
+    return getErrors(editMemberSchema, editForm)
   }
 
   async function handleEditSubmit(e) {

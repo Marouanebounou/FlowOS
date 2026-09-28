@@ -7,6 +7,8 @@ import {
 import { Add, Edit, Delete, Refresh, CalendarToday } from '@mui/icons-material'
 import { api } from '../api/client'
 import { useOrganisation } from '../contexts/OrganisationContext'
+import { calendarSchema } from '../validation/schemas'
+import { getError } from '../validation/validate'
 
 function toInputLocal(dt) {
   if (!dt) return ''
@@ -87,13 +89,11 @@ export default function CalendarPage() {
 
   async function handleSubmit(e) {
     e.preventDefault()
-    if (!form.title.trim()) { setFormError('Title is required'); return }
-    if (!form.startAt) { setFormError('Start time is required'); return }
-    if (!form.endAt) { setFormError('End time is required'); return }
+    const validationError = getError(calendarSchema, { title: form.title, startAt: form.startAt, endAt: form.endAt })
+    if (validationError) { setFormError(validationError); return }
 
     const startIso = new Date(form.startAt).toISOString().slice(0, 19)
     const endIso = new Date(form.endAt).toISOString().slice(0, 19)
-    if (new Date(endIso) <= new Date(startIso)) { setFormError('End must be after start'); return }
     setSubmitting(true); setFormError(null)
     const payload = {
       title: form.title.trim(),

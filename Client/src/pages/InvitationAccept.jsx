@@ -4,6 +4,8 @@ import { Box, Card, CardContent, TextField, Button, Typography, Alert, InputAdor
 import { Visibility, VisibilityOff } from '@mui/icons-material'
 import { api } from '../api/client'
 import { useAuth } from '../contexts/AuthContext'
+import { invitationSchema } from '../validation/schemas'
+import { getErrors } from '../validation/validate'
 
 export default function InvitationAccept() {
   const { token } = useParams()
@@ -18,15 +20,7 @@ export default function InvitationAccept() {
 
   function update(field) { return (e) => setForm((p) => ({ ...p, [field]: e.target.value })) }
   function validate() {
-    const e = {}
-    if (!form.firstName.trim()) e.firstName = 'First name is required'
-    if (!form.lastName.trim()) e.lastName = 'Last name is required'
-    if (!form.password) e.password = 'Password is required'
-    else if (form.password.length < 8) e.password = 'Min 8 characters'
-    if (!form.confirmPassword) e.confirmPassword = 'Please confirm password'
-    else if (form.password !== form.confirmPassword) e.confirmPassword = 'Passwords do not match'
-    if (form.phoneNumber && !/^[\d+()\-\\s]+$/.test(form.phoneNumber)) e.phoneNumber = 'Phone number is invalid'
-    return e
+    return getErrors(invitationSchema, form)
   }
 
   async function handleSubmit(e) {

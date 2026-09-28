@@ -3,6 +3,8 @@ import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { Box, Card, CardContent, TextField, Button, Typography, Alert, InputAdornment, IconButton, Link as MuiLink } from '@mui/material'
 import { Visibility, VisibilityOff } from '@mui/icons-material'
 import { api } from '../api/client'
+import { resetPasswordSchema } from '../validation/schemas'
+import { getError } from '../validation/validate'
 
 export default function ResetPassword() {
   const [searchParams] = useSearchParams()
@@ -18,8 +20,8 @@ export default function ResetPassword() {
   async function handleSubmit(e) {
     e.preventDefault(); setError(null)
     if (!token) { setError('Reset token missing from link'); return }
-    if (!newPassword || newPassword.length < 8) { setError('New password must be at least 8 characters'); return }
-    if (newPassword !== confirmPassword) { setError('Passwords do not match'); return }
+    const validationError = getError(resetPasswordSchema, { newPassword, confirmPassword })
+    if (validationError) { setError(validationError); return }
     setLoading(true)
     const result = await api.resetPassword(token, newPassword)
     setLoading(false)

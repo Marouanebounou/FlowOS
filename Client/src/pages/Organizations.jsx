@@ -8,18 +8,11 @@ import { Business, Add, Search, Groups, ArrowOutward, Palette } from '@mui/icons
 import { api } from '../api/client'
 import { useAuth } from '../contexts/AuthContext'
 import { useOrganisation } from '../contexts/OrganisationContext'
+import { organizationSchema } from '../validation/schemas'
+import { getErrors } from '../validation/validate'
 
-function isValidUrl(v) { try { const u = new URL(v); return u.protocol === 'http:' || u.protocol === 'https:' } catch { return false } }
-function isValidColor(v) { return /^#([A-Fa-f0-9]{3}|[A-Fa-f0-9]{6})$/.test(v) || /^[a-z]+$/i.test(v) }
 function validate(form) {
-  const e = {}
-  if (!form.name.trim()) e.name = 'Organisation name is required'
-  else if (form.name.trim().length > 255) e.name = 'Max 255 characters'
-  if (form.logoUrl && form.logoUrl.trim().length > 500) e.logoUrl = 'Max 500 characters'
-  if (form.logoUrl && form.logoUrl.trim() && !isValidUrl(form.logoUrl.trim())) e.logoUrl = 'Must be valid URL (https://...)'
-  if (form.primaryColor && form.primaryColor.trim().length > 20) e.primaryColor = 'Max 20 characters'
-  if (form.primaryColor && form.primaryColor.trim() && !isValidColor(form.primaryColor.trim())) e.primaryColor = 'Valid hex like #6366f1'
-  return e
+  return getErrors(organizationSchema, form)
 }
 
 export default function Organizations() {

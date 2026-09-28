@@ -5,6 +5,8 @@ import {
 } from '@mui/material'
 import { Add, Edit, Delete, GroupAdd, PersonRemove, Star, ExpandMore, ExpandLess, Refresh } from '@mui/icons-material'
 import { api } from '../api/client'
+import { teamSchema } from '../validation/schemas'
+import { getError } from '../validation/validate'
 
 export default function TeamsTab({ organisationId, canRead, canCreate, canUpdate, canDelete, canAddMember, canRemoveMember, canAssignLeader }) {
   const [teams, setTeams] = useState([])
@@ -65,8 +67,8 @@ export default function TeamsTab({ organisationId, canRead, canCreate, canUpdate
 
   async function handleSubmit(e) {
     e.preventDefault()
-    if (!formName.trim()) { setFormError('Team name is required'); return }
-    if (formName.trim().length > 255) { setFormError('Max 255 characters'); return }
+    const validationError = getError(teamSchema, { name: formName })
+    if (validationError) { setFormError(validationError); return }
     setSubmitting(true); setFormError(null)
     const res = editing
       ? await api.updateTeam(organisationId, editing.id, { name: formName.trim() })

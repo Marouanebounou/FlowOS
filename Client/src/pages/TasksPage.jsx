@@ -7,6 +7,8 @@ import {
 import { Add, Edit, Delete, Refresh, Task } from '@mui/icons-material'
 import { api } from '../api/client'
 import { useOrganisation } from '../contexts/OrganisationContext'
+import { taskSchema } from '../validation/schemas'
+import { getError } from '../validation/validate'
 
 export default function TasksPage() {
   const { organisationId } = useParams()
@@ -82,7 +84,8 @@ export default function TasksPage() {
 
   async function handleSubmit(e) {
     e.preventDefault()
-    if (!form.title.trim()) { setFormError('Title is required'); return }
+    const validationError = getError(taskSchema, { title: form.title })
+    if (validationError) { setFormError(validationError); return }
     setSubmitting(true); setFormError(null)
     const payload = {
       title: form.title.trim(),

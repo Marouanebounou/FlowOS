@@ -7,6 +7,8 @@ import {
 import { Add, Edit, Delete, Refresh, Folder } from '@mui/icons-material'
 import { api } from '../api/client'
 import { useOrganisation } from '../contexts/OrganisationContext'
+import { projectSchema } from '../validation/schemas'
+import { getError } from '../validation/validate'
 
 export default function ProjectsPage() {
   const { organisationId } = useParams()
@@ -70,7 +72,8 @@ export default function ProjectsPage() {
 
   async function handleSubmit(e) {
     e.preventDefault()
-    if (!form.name.trim()) { setFormError('Name is required'); return }
+    const validationError = getError(projectSchema, { name: form.name })
+    if (validationError) { setFormError(validationError); return }
     setSubmitting(true); setFormError(null)
     const payload = { name: form.name.trim(), description: form.description.trim() || null, status: form.status }
     const res = editing ? await api.updateProject(effectiveOrgId, Number(selectedTeam), editing.id, payload) : await api.createProject(effectiveOrgId, Number(selectedTeam), payload)
