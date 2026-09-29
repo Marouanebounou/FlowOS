@@ -5,9 +5,13 @@ import com.example.flowos.Dto.TeamResponse;
 import com.example.flowos.Dto.TeamMemberRequest;
 import com.example.flowos.Dto.TeamMemberResponse;
 import com.example.flowos.Services.TeamService;
+import com.example.flowos.Utils.PaginationUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -21,8 +25,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
-
 @RestController
 @RequestMapping("/api/v1/organisations/{organisationId}/teams")
 @RequiredArgsConstructor
@@ -31,8 +33,12 @@ public class TeamController {
 
     @GetMapping
     @PreAuthorize("@permissionSecurity.hasPermission(authentication, #organisationId, 'team.read')")
-    public ResponseEntity<List<TeamResponse>> list(Authentication authentication, @PathVariable Long organisationId) {
-        return ResponseEntity.ok(teamService.list(authentication.getName(), organisationId));
+    public ResponseEntity<Page<TeamResponse>> list(
+        Authentication authentication,
+        @PathVariable Long organisationId,
+        @PageableDefault(size = 20) Pageable pageable
+    ) {
+        return ResponseEntity.ok(teamService.list(authentication.getName(), organisationId, PaginationUtils.normalize(pageable)));
     }
 
     @GetMapping("/{teamId}")
@@ -47,12 +53,13 @@ public class TeamController {
 
     @GetMapping("/{teamId}/members")
     @PreAuthorize("@permissionSecurity.hasPermission(authentication, #organisationId, 'team.read')")
-    public ResponseEntity<List<TeamMemberResponse>> listMembers(
+    public ResponseEntity<Page<TeamMemberResponse>> listMembers(
         @PathVariable Long organisationId,
         @PathVariable Long teamId,
-        Authentication authentication
+        Authentication authentication,
+        @PageableDefault(size = 20) Pageable pageable
     ) {
-        return ResponseEntity.ok(teamService.listMembers(authentication.getName(), organisationId, teamId));
+        return ResponseEntity.ok(teamService.listMembers(authentication.getName(), organisationId, teamId, PaginationUtils.normalize(pageable)));
     }
 
     @PostMapping

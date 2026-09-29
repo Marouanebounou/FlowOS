@@ -28,7 +28,6 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
-  // Hydrate api client + validate session on mount
   useEffect(() => {
     const storedToken = readStoredToken()
     const storedUser = readStoredUser()
@@ -38,7 +37,6 @@ export function AuthProvider({ children }) {
       setToken(storedToken)
       if (storedUser) setUser(storedUser)
 
-      // verify token is still valid by fetching profile
       let cancelled = false
       api.getProfile().then((result) => {
         if (cancelled) return
@@ -46,21 +44,15 @@ export function AuthProvider({ children }) {
           setUser(result.data)
           try {
             localStorage.setItem(USER_KEY, JSON.stringify(result.data))
-          } catch {
-            // ignore
-          }
+          } catch {}
         } else if (result.status === 401 || result.status === 403) {
-          // token invalid/expired -> clear session, will redirect via ProtectedRoute
           setUser(null)
           setToken(null)
           api.clearToken()
           try {
             localStorage.removeItem(USER_KEY)
-          } catch {
-            // ignore
-          }
+          } catch {}
         }
-        // for 403 above, api already dispatched auth:logout - handled below
         setLoading(false)
       })
 
@@ -79,9 +71,7 @@ export function AuthProvider({ children }) {
       api.clearToken()
       try {
         localStorage.removeItem(USER_KEY)
-      } catch {
-        // ignore
-      }
+      } catch {}
       setLoading(false)
     }
     window.addEventListener('auth:logout', handleLogout)
@@ -94,9 +84,7 @@ export function AuthProvider({ children }) {
     setUser(userData)
     try {
       localStorage.setItem(USER_KEY, JSON.stringify(userData))
-    } catch {
-      // ignore
-    }
+    } catch {}
   }, [])
 
   const login = useCallback(async (credentials) => {
@@ -109,7 +97,6 @@ export function AuthProvider({ children }) {
     if (result.status === 200 && result.data) {
       const { token: jwt, userId, firstName, lastName, email } = result.data
       persistSession(jwt, { userId, firstName, lastName, email })
-      // optionally fetch full profile
       api.getProfile().then((r) => {
         if (r.status === 200 && r.data) {
           setUser(r.data)

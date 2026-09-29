@@ -1,6 +1,7 @@
 package com.example.flowos.Controllers;
 
 import com.example.flowos.Dto.InstalledModuleResponse;
+import com.example.flowos.Dto.ModuleTeamResponse;
 import com.example.flowos.Services.ModuleService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -57,5 +58,48 @@ public class OrganisationModuleController {
         Boolean enabled = body.get("enabled");
         if (enabled == null) throw new IllegalArgumentException("enabled is required");
         return ResponseEntity.ok(moduleService.setEnabled(authentication.getName(), organisationId, moduleKey, enabled, request.getRemoteAddr()));
+    }
+
+    @PutMapping("/{moduleKey}/responsable/{userId}")
+    public ResponseEntity<InstalledModuleResponse> setResponsable(
+        Authentication authentication,
+        @PathVariable Long organisationId,
+        @PathVariable String moduleKey,
+        @PathVariable Long userId,
+        HttpServletRequest request
+    ) {
+        return ResponseEntity.ok(moduleService.setResponsable(authentication.getName(), organisationId, moduleKey, userId, request.getRemoteAddr()));
+    }
+
+    @GetMapping("/{moduleKey}/teams")
+    public ResponseEntity<List<ModuleTeamResponse>> listTeams(
+        Authentication authentication,
+        @PathVariable Long organisationId,
+        @PathVariable String moduleKey
+    ) {
+        return ResponseEntity.ok(moduleService.listModuleTeams(authentication.getName(), organisationId, moduleKey));
+    }
+
+    @PostMapping("/{moduleKey}/teams/{teamId}")
+    public ResponseEntity<ModuleTeamResponse> addTeam(
+        Authentication authentication,
+        @PathVariable Long organisationId,
+        @PathVariable String moduleKey,
+        @PathVariable Long teamId,
+        HttpServletRequest request
+    ) {
+        return ResponseEntity.ok(moduleService.addModuleTeam(authentication.getName(), organisationId, moduleKey, teamId, request.getRemoteAddr()));
+    }
+
+    @DeleteMapping("/{moduleKey}/teams/{teamId}")
+    public ResponseEntity<Void> removeTeam(
+        Authentication authentication,
+        @PathVariable Long organisationId,
+        @PathVariable String moduleKey,
+        @PathVariable Long teamId,
+        HttpServletRequest request
+    ) {
+        moduleService.removeModuleTeam(authentication.getName(), organisationId, moduleKey, teamId, request.getRemoteAddr());
+        return ResponseEntity.noContent().build();
     }
 }

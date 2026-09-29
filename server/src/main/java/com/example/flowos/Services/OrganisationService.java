@@ -13,6 +13,8 @@ import com.example.flowos.Repositories.OrganisationMemberRepository;
 import com.example.flowos.Repositories.OrganisationRepository;
 import com.example.flowos.Repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,7 +28,7 @@ public class OrganisationService {
     private final PermissionService permissionService;
     private final UserRepository userRepository;
     private final AuditLogService auditLogService;
-    
+
     @Transactional
     public OrganisationResponse create(String email, CreateOrganisationRequest request, String ipAddress) {
         User user = findUser(email);
@@ -101,6 +103,25 @@ public class OrganisationService {
             normalizeFilter(email),
             active
         ).stream().map(OrganisationUserResponse::from).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public Page<OrganisationUserResponse> listUsers(
+        Long organisationId,
+        String name,
+        String email,
+        Boolean active,
+        Pageable pageable
+    ) {
+        findOrganisation(organisationId);
+
+        return organisationMemberRepository.findUsersByOrganisationAndFilters(
+            organisationId,
+            normalizeFilter(name),
+            normalizeFilter(email),
+            active,
+            pageable
+        ).map(OrganisationUserResponse::from);
     }
 
     @Transactional

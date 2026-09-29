@@ -3,22 +3,22 @@ import { Box, Card, CardContent, Typography, TextField, Button, Alert, Divider, 
 import { Save, DeleteForever } from '@mui/icons-material'
 import { api } from '../api/client'
 import { useOrganisation } from '../contexts/OrganisationContext'
+import { organizationDetailsSchema, brandingSchema } from '../validation/schemas'
+import { getError } from '../validation/validate'
 
 export default function SettingsTab({ organisation, onUpdated, onDeleted }) {
   const { refresh } = useOrganisation()
-  // details form (PUT) - name required + logoUrl
+
   const [details, setDetails] = useState({ name: organisation.name || '', logoUrl: organisation.logoUrl || '' })
   const [detailsError, setDetailsError] = useState(null)
   const [detailsSuccess, setDetailsSuccess] = useState(null)
   const [detailsSaving, setDetailsSaving] = useState(false)
 
-  // branding form (PATCH) - name, logoUrl, primaryColor (hex)
   const [branding, setBranding] = useState({ name: '', logoUrl: '', primaryColor: '' })
   const [brandingError, setBrandingError] = useState(null)
   const [brandingSuccess, setBrandingSuccess] = useState(null)
   const [brandingSaving, setBrandingSaving] = useState(false)
 
-  // delete
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [confirmText, setConfirmText] = useState('')
   const [deleting, setDeleting] = useState(false)
@@ -27,9 +27,8 @@ export default function SettingsTab({ organisation, onUpdated, onDeleted }) {
   async function handleDetailsSave(e) {
     e.preventDefault()
     setDetailsError(null); setDetailsSuccess(null)
-    if (!details.name.trim()) { setDetailsError('Organisation name is required'); return }
-    if (details.name.trim().length > 255) { setDetailsError('Max 255 characters'); return }
-    if (details.logoUrl && details.logoUrl.length > 500) { setDetailsError('Logo URL max 500'); return }
+    const detailsValidationError = getError(organizationDetailsSchema, { name: details.name, logoUrl: details.logoUrl })
+    if (detailsValidationError) { setDetailsError(detailsValidationError); return }
     setDetailsSaving(true)
     const res = await api.updateOrganization(organisation.id, { name: details.name.trim(), logoUrl: details.logoUrl.trim() || null })
     setDetailsSaving(false)
@@ -44,6 +43,8 @@ export default function SettingsTab({ organisation, onUpdated, onDeleted }) {
   async function handleBrandingSave(e) {
     e.preventDefault()
     setBrandingError(null); setBrandingSuccess(null)
+    const brandingValidationError = getError(brandingSchema, branding)
+    if (brandingValidationError) { setBrandingError(brandingValidationError); return }
     const payload = {}
     if (branding.name.trim()) {
       if (branding.name.trim().length > 255) { setBrandingError('Name max 255'); return }
@@ -53,13 +54,13 @@ export default function SettingsTab({ organisation, onUpdated, onDeleted }) {
       if (branding.logoUrl.trim().length > 500) { setBrandingError('Logo URL max 500'); return }
       payload.logoUrl = branding.logoUrl.trim()
     } else if (branding.logoUrl !== '' && branding.logoUrl === '') {
-      // empty means clear? only send if user typed then cleared
+
     }
     if (branding.primaryColor.trim()) {
       if (!/^#[0-9A-Fa-f]{6}$/.test(branding.primaryColor.trim())) { setBrandingError('Primary color must be #RRGGBB'); return }
       payload.primaryColor = branding.primaryColor.trim()
     }
-    // allow clearing primaryColor with empty string -> backend pattern allows ^$ but we treat empty as not sent
+
     if (Object.keys(payload).length === 0) { setBrandingError('Nothing to update'); return }
 
     setBrandingSaving(true)
@@ -89,7 +90,7 @@ export default function SettingsTab({ organisation, onUpdated, onDeleted }) {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-      {/* Details */}
+      
       <Card><CardContent>
         <Typography variant="h6" fontWeight={600} sx={{ mb: 1 }}>Organization details</Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>Update the name and logo for your organization.</Typography>
@@ -102,7 +103,7 @@ export default function SettingsTab({ organisation, onUpdated, onDeleted }) {
         </Box>
       </CardContent></Card>
 
-      {/* Branding */}
+      
       <Card><CardContent>
         <Typography variant="h6" fontWeight={600} sx={{ mb: 1 }}>Branding & settings</Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>Change organization name, logo and primary color.</Typography>
@@ -123,7 +124,7 @@ export default function SettingsTab({ organisation, onUpdated, onDeleted }) {
         </Box>
       </CardContent></Card>
 
-      {/* Danger zone */}
+      
       <Card sx={{ border: 1, borderColor: 'error.main' }}><CardContent>
         <Typography variant="h6" fontWeight={700} color="error" sx={{ mb: 1 }}>Danger zone</Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>Permanently delete this organization and all its data. This cannot be undone.</Typography>

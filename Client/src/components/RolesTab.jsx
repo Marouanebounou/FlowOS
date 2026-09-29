@@ -5,6 +5,8 @@ import {
 } from '@mui/material'
 import { Add, Edit, Delete, Shield, Refresh } from '@mui/icons-material'
 import { api } from '../api/client'
+import { roleSchema } from '../validation/schemas'
+import { getError } from '../validation/validate'
 
 export default function RolesTab({ organisationId, canRead, canCreate, canUpdate, canDelete, canAssign, canPermissionRead, canPermissionManage }) {
   const [roles, setRoles] = useState([])
@@ -19,14 +21,12 @@ export default function RolesTab({ organisationId, canRead, canCreate, canUpdate
   const [formError, setFormError] = useState(null)
   const [submitting, setSubmitting] = useState(false)
 
-  // permission assign
   const [assignOpen, setAssignOpen] = useState(false)
   const [assignRole, setAssignRole] = useState(null)
   const [selectedCodes, setSelectedCodes] = useState([])
   const [assignSubmitting, setAssignSubmitting] = useState(false)
 
-  // permission catalog inline
-  const [permTab, setPermTab] = useState(false) // false = roles, true = catalog
+  const [permTab, setPermTab] = useState(false) 
   const [permForm, setPermForm] = useState({ code: '', description: '' })
   const [permDialogOpen, setPermDialogOpen] = useState(false)
   const [editingPerm, setEditingPerm] = useState(null)
@@ -56,7 +56,8 @@ export default function RolesTab({ organisationId, canRead, canCreate, canUpdate
 
   async function handleSubmit(e) {
     e.preventDefault()
-    if (!form.name.trim()) { setFormError('Role name is required'); return }
+    const validationError = getError(roleSchema, { name: form.name })
+    if (validationError) { setFormError(validationError); return }
     setSubmitting(true); setFormError(null)
     const payload = { name: form.name.trim(), description: form.description.trim() || null }
     const res = editing ? await api.updateRole(organisationId, editing.id, payload) : await api.createRole(organisationId, payload)
@@ -92,7 +93,6 @@ export default function RolesTab({ organisationId, canRead, canCreate, canUpdate
     } else setSnack({ severity: 'error', message: res.error?.message || 'Assign failed' })
   }
 
-  // permission catalog crud
   function openPermCreate() { setEditingPerm(null); setPermForm({ code: '', description: '' }); setPermDialogOpen(true) }
   function openPermEdit(p) { setEditingPerm(p); setPermForm({ code: p.code, description: p.description || '' }); setPermDialogOpen(true) }
 

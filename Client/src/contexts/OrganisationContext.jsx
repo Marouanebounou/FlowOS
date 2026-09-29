@@ -33,7 +33,7 @@ export function OrganisationProvider({ children }) {
     const result = await api.listOrganizations()
     if (result.status === 200 && Array.isArray(result.data)) {
       setOrganizations(result.data)
-      // auto-select first if none selected or selected not in list
+
       const ids = result.data.map((o) => o.id)
       const current = readActiveId()
       if (result.data.length > 0 && (current == null || !ids.includes(current))) {
@@ -62,8 +62,6 @@ export function OrganisationProvider({ children }) {
     }
     refresh()
   }, [authLoading, isAuthenticated, token, refresh])
-
-  // also refetch when window regains focus or auth changes? keep simple
 
   const select = useCallback((id) => {
     const num = id != null ? Number(id) : null
@@ -106,5 +104,4 @@ export function useOrganisation() {
   return ctx
 }
 
-// alias British spelling for convenience
 export const useOrganization = useOrganisation

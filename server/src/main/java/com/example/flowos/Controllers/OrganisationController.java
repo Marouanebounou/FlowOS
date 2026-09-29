@@ -6,9 +6,13 @@ import com.example.flowos.Dto.OrganisationSettingsRequest;
 import com.example.flowos.Dto.OrganisationUserResponse;
 import com.example.flowos.Dto.UpdateOrganisationRequest;
 import com.example.flowos.Services.OrganisationService;
+import com.example.flowos.Utils.PaginationUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -77,13 +81,14 @@ public class OrganisationController {
 
     @GetMapping("/{organisationId}/users")
     @PreAuthorize("@permissionSecurity.isAdmin(authentication, #organisationId)")
-    public ResponseEntity<List<OrganisationUserResponse>> listUsers(
+    public ResponseEntity<Page<OrganisationUserResponse>> listUsers(
         @PathVariable Long organisationId,
         @RequestParam(required = false) String name,
         @RequestParam(required = false) String email,
-        @RequestParam(required = false) Boolean active
+        @RequestParam(required = false) Boolean active,
+        @PageableDefault(size = 20) Pageable pageable
     ) {
-        return ResponseEntity.ok(organisationService.listUsers(organisationId, name, email, active));
+        return ResponseEntity.ok(organisationService.listUsers(organisationId, name, email, active, PaginationUtils.normalize(pageable)));
     }
 
     @PatchMapping("/{organisationId}/users/{userId}/deactivate")

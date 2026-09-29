@@ -31,6 +31,27 @@ public class PermissionService {
         DEFAULT_PERMISSIONS.put("team.member.add", "Add users to teams");
         DEFAULT_PERMISSIONS.put("team.member.remove", "Remove users from teams");
         DEFAULT_PERMISSIONS.put("team.leader.assign", "Assign team leaders");
+        DEFAULT_PERMISSIONS.put("tasks.read", "View tasks");
+        DEFAULT_PERMISSIONS.put("tasks.create", "Create tasks");
+        DEFAULT_PERMISSIONS.put("tasks.update", "Update tasks");
+        DEFAULT_PERMISSIONS.put("tasks.delete", "Delete tasks");
+        DEFAULT_PERMISSIONS.put("tasks.assign", "Assign tasks to users");
+        DEFAULT_PERMISSIONS.put("projects.read", "View projects");
+        DEFAULT_PERMISSIONS.put("projects.create", "Create projects");
+        DEFAULT_PERMISSIONS.put("projects.update", "Update projects");
+        DEFAULT_PERMISSIONS.put("projects.delete", "Delete projects");
+        DEFAULT_PERMISSIONS.put("calendar.read", "View calendar events");
+        DEFAULT_PERMISSIONS.put("calendar.create", "Create calendar events");
+        DEFAULT_PERMISSIONS.put("calendar.update", "Update calendar events");
+        DEFAULT_PERMISSIONS.put("calendar.delete", "Delete calendar events");
+        DEFAULT_PERMISSIONS.put("crm.read", "View CRM contacts");
+        DEFAULT_PERMISSIONS.put("crm.create", "Create CRM contacts");
+        DEFAULT_PERMISSIONS.put("crm.update", "Update CRM contacts");
+        DEFAULT_PERMISSIONS.put("crm.delete", "Delete CRM contacts");
+        DEFAULT_PERMISSIONS.put("documents.read", "View documents");
+        DEFAULT_PERMISSIONS.put("documents.create", "Upload documents");
+        DEFAULT_PERMISSIONS.put("documents.update", "Update documents");
+        DEFAULT_PERMISSIONS.put("documents.delete", "Delete documents");
         DEFAULT_PERMISSIONS.put("role.read", "View roles");
         DEFAULT_PERMISSIONS.put("role.create", "Create roles");
         DEFAULT_PERMISSIONS.put("role.update", "Update roles");
@@ -44,7 +65,12 @@ public class PermissionService {
 
     private static final Set<String> MANAGER_PERMISSIONS = Set.of(
         "team.read", "team.create", "team.update", "team.member.add",
-        "team.member.remove", "team.leader.assign"
+        "team.member.remove", "team.leader.assign",
+        "tasks.read", "tasks.create", "tasks.update", "tasks.assign",
+        "projects.read", "projects.create", "projects.update",
+        "calendar.read", "calendar.create", "calendar.update",
+        "crm.read", "crm.create", "crm.update",
+        "documents.read", "documents.create", "documents.update"
     );
 
     private final OrganisationRepository organisationRepository;
@@ -64,8 +90,8 @@ public class PermissionService {
             permissions
         );
         createRole(organisation, "MANAGER", "Team manager", MANAGER_PERMISSIONS, permissions);
-        createRole(organisation, "EMPLOYEE", "Organisation employee", Set.of("team.read"), permissions);
-        createRole(organisation, "MEMBER", "Organisation member", Set.of("team.read"), permissions);
+        createRole(organisation, "EMPLOYEE", "Organisation employee", Set.of("team.read", "tasks.read", "projects.read", "calendar.read", "crm.read", "documents.read"), permissions);
+        createRole(organisation, "MEMBER", "Organisation member", Set.of("team.read", "tasks.read", "projects.read", "calendar.read", "crm.read", "documents.read"), permissions);
         return adminRole;
     }
 
@@ -80,11 +106,16 @@ public class PermissionService {
                     organisation,
                     "MEMBER",
                     "Organisation member",
-                    Set.of("team.read"),
+                    Set.of("team.read", "tasks.read", "projects.read", "calendar.read", "crm.read", "documents.read"),
                     permissions
                 );
             });
         role.getPermissions().add(permissions.get("team.read"));
+        role.getPermissions().add(permissions.get("tasks.read"));
+        role.getPermissions().add(permissions.get("projects.read"));
+        role.getPermissions().add(permissions.get("calendar.read"));
+        role.getPermissions().add(permissions.get("crm.read"));
+        role.getPermissions().add(permissions.get("documents.read"));
         return roleRepository.save(role);
     }
 

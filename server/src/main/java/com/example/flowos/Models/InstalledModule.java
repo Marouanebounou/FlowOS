@@ -32,6 +32,10 @@ public class InstalledModule {
     @JoinColumn(name = "module_id", nullable = false)
     private Module module;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "responsable_id")
+    private User responsable;
+
     @PrePersist
     private void onCreate() {
         installedAt = LocalDateTime.now();
