@@ -4,7 +4,6 @@ import com.example.flowos.Dto.DocumentRequest;
 import com.example.flowos.Dto.DocumentResponse;
 import com.example.flowos.Models.Document;
 import com.example.flowos.Models.Organisation;
-import com.example.flowos.Models.Team;
 import com.example.flowos.Models.User;
 import com.example.flowos.Repositories.DocumentRepository;
 import com.example.flowos.Repositories.OrganisationMemberRepository;

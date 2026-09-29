@@ -3,15 +3,18 @@ package com.example.flowos.Controllers;
 import com.example.flowos.Dto.CrmContactRequest;
 import com.example.flowos.Dto.CrmContactResponse;
 import com.example.flowos.Services.CrmService;
+import com.example.flowos.Utils.PaginationUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/organisations/{organisationId}/crm")
@@ -20,12 +23,13 @@ public class CrmController {
     private final CrmService crmService;
 
     @GetMapping
-    public ResponseEntity<List<CrmContactResponse>> list(
+    public ResponseEntity<Page<CrmContactResponse>> list(
         Authentication authentication,
         @PathVariable Long organisationId,
-        @RequestParam(required = false) Long teamId
+        @RequestParam(required = false) Long teamId,
+        @PageableDefault(size = 20) Pageable pageable
     ) {
-        return ResponseEntity.ok(crmService.list(authentication.getName(), organisationId, teamId));
+        return ResponseEntity.ok(crmService.list(authentication.getName(), organisationId, teamId, PaginationUtils.normalize(pageable)));
     }
 
     @PostMapping

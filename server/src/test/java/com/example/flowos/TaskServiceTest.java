@@ -3,7 +3,6 @@ package com.example.flowos;
 import com.example.flowos.Dto.TaskRequest;
 import com.example.flowos.Dto.TaskResponse;
 import com.example.flowos.Models.Organisation;
-import com.example.flowos.Models.OrganisationMember;
 import com.example.flowos.Models.Task;
 import com.example.flowos.Models.Team;
 import com.example.flowos.Models.User;

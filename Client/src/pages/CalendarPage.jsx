@@ -5,10 +5,11 @@ import {
   Table, TableHead, TableRow, TableCell, TableBody, Chip, Alert, CircularProgress, IconButton, Tooltip, Select, MenuItem, FormControl, InputLabel
 } from '@mui/material'
 import { Add, Edit, Delete, Refresh, CalendarToday } from '@mui/icons-material'
-import { api } from '../api/client'
+import { api, parsePage } from '../api/client'
 import { useOrganisation } from '../contexts/OrganisationContext'
 import { calendarSchema } from '../validation/schemas'
 import { getError } from '../validation/validate'
+import PagedControls from '../components/Pagination'
 
 function toInputLocal(dt) {
   if (!dt) return ''
@@ -30,6 +31,9 @@ export default function CalendarPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [snack, setSnack] = useState(null)
+  const [page, setPage] = useState(0)
+  const [rowsPerPage, setRowsPerPage] = useState(10)
+  const [total, setTotal] = useState(0)
 
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState(null)
@@ -53,20 +57,24 @@ export default function CalendarPage() {
 
   const fetchTeams = useCallback(async () => {
     if (!effectiveOrgId) return
-    const res = await api.listTeams(effectiveOrgId)
-    if (res.status === 200) setTeams(res.data)
+    const res = await api.listTeams(effectiveOrgId, { page: 0, size: 100 })
+    if (res.status === 200) setTeams(parsePage(res.data).content)
   }, [effectiveOrgId])
 
   const fetchEvents = useCallback(async () => {
     if (!effectiveOrgId || !canRead) { setLoading(false); return }
     setLoading(true); setError(null)
     const teamId = filterTeam ? Number(filterTeam) : null
-    const res = await api.listCalendar(effectiveOrgId, teamId)
-    if (res.status === 200 && Array.isArray(res.data)) setEvents(res.data)
+    const res = await api.listCalendar(effectiveOrgId, teamId, { page, size: rowsPerPage })
+    if (res.status === 200 && res.data) {
+      const paged = parsePage(res.data)
+      setEvents(paged.content)
+      setTotal(paged.totalElements ?? paged.content.length)
+    }
     else if (res.status === 403) setError('You lack permission: calendar.read')
     else setError(res.error?.message || `Failed to load events (${res.status})`)
     setLoading(false)
-  }, [effectiveOrgId, filterTeam, canRead])
+  }, [effectiveOrgId, filterTeam, canRead, page, rowsPerPage])
 
   useEffect(() => { fetchPerms(); fetchTeams() }, [fetchPerms, fetchTeams])
   useEffect(() => { fetchEvents() }, [fetchEvents])
@@ -133,7 +141,7 @@ export default function CalendarPage() {
         <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap', mb: 2 }}>
           <FormControl size="small" sx={{ minWidth: 200 }}>
             <InputLabel>Filter by team</InputLabel>
-            <Select value={filterTeam} label="Filter by team" onChange={(e) => setFilterTeam(e.target.value)}>
+            <Select value={filterTeam} label="Filter by team" onChange={(e) => { setFilterTeam(e.target.value); setPage(0) }}>
               <MenuItem value="">All teams / org-wide</MenuItem>
               {teams.map((t) => <MenuItem key={t.id} value={String(t.id)}>{t.name}</MenuItem>)}
             </Select>
@@ -148,8 +156,9 @@ export default function CalendarPage() {
         {snack && <Alert severity={snack.severity} onClose={() => setSnack(null)} sx={{ mb: 2 }}>{snack.message}</Alert>}
 
         {loading ? <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}><CircularProgress /></Box>
-          : events.length === 0 ? <Box sx={{ textAlign: 'center', py: 6, color: 'text.secondary' }}><Typography variant="body2">No events. {canCreate && 'Create one.'}</Typography></Box>
+          : events.length === 0 ? <Box sx={{ textAlign: 'center', py: 6, color: 'text.secondary' }}><Typography variant="body2">No events on this page. {canCreate && 'Create one.'}</Typography></Box>
           : (
+            <>
             <Table size="small">
               <TableHead><TableRow><TableCell>Title</TableCell><TableCell>When</TableCell><TableCell>Team</TableCell><TableCell>Location</TableCell><TableCell align="right">Actions</TableCell></TableRow></TableHead>
               <TableBody>
@@ -174,6 +183,8 @@ export default function CalendarPage() {
                 ))}
               </TableBody>
             </Table>
+            <PagedControls total={total} page={page} rowsPerPage={rowsPerPage} onPageChange={setPage} onRowsPerPageChange={(n) => { setRowsPerPage(n); setPage(0) }} />
+            </>
           )}
       </CardContent></Card>
 

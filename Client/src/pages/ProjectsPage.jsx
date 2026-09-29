@@ -5,10 +5,11 @@ import {
   Table, TableHead, TableRow, TableCell, TableBody, Chip, Alert, CircularProgress, IconButton, Tooltip, Select, MenuItem, FormControl, InputLabel
 } from '@mui/material'
 import { Add, Edit, Delete, Refresh, Folder } from '@mui/icons-material'
-import { api } from '../api/client'
+import { api, parsePage } from '../api/client'
 import { useOrganisation } from '../contexts/OrganisationContext'
 import { projectSchema } from '../validation/schemas'
 import { getError } from '../validation/validate'
+import PagedControls from '../components/Pagination'
 
 export default function ProjectsPage() {
   const { organisationId } = useParams()
@@ -24,6 +25,9 @@ export default function ProjectsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [snack, setSnack] = useState(null)
+  const [page, setPage] = useState(0)
+  const [rowsPerPage, setRowsPerPage] = useState(10)
+  const [total, setTotal] = useState(0)
 
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState(null)
@@ -47,22 +51,27 @@ export default function ProjectsPage() {
 
   const fetchTeams = useCallback(async () => {
     if (!effectiveOrgId) return
-    const res = await api.listTeams(effectiveOrgId)
-    if (res.status === 200 && Array.isArray(res.data)) {
-      setTeams(res.data)
-      if (res.data.length && !selectedTeam) setSelectedTeam(String(res.data[0].id))
+    const res = await api.listTeams(effectiveOrgId, { page: 0, size: 100 })
+    if (res.status === 200 && res.data) {
+      const paged = parsePage(res.data)
+      setTeams(paged.content)
+      if (paged.content.length && !selectedTeam) setSelectedTeam(String(paged.content[0].id))
     }
   }, [effectiveOrgId, selectedTeam])
 
   const fetchProjects = useCallback(async () => {
     if (!effectiveOrgId || !selectedTeam || !canRead) { setLoading(false); return }
     setLoading(true); setError(null)
-    const res = await api.listProjects(effectiveOrgId, Number(selectedTeam))
-    if (res.status === 200 && Array.isArray(res.data)) setProjects(res.data)
+    const res = await api.listProjects(effectiveOrgId, Number(selectedTeam), { page, size: rowsPerPage })
+    if (res.status === 200 && res.data) {
+      const paged = parsePage(res.data)
+      setProjects(paged.content)
+      setTotal(paged.totalElements ?? paged.content.length)
+    }
     else if (res.status === 403) setError('You lack permission: projects.read')
     else setError(res.error?.message || `Failed to load projects (${res.status})`)
     setLoading(false)
-  }, [effectiveOrgId, selectedTeam, canRead])
+  }, [effectiveOrgId, selectedTeam, canRead, page, rowsPerPage])
 
   useEffect(() => { fetchPerms(); fetchTeams() }, [fetchPerms, fetchTeams])
   useEffect(() => { fetchProjects() }, [fetchProjects])
@@ -106,7 +115,7 @@ export default function ProjectsPage() {
         <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap', mb: 2 }}>
           <FormControl size="small" sx={{ minWidth: 200 }}>
             <InputLabel>Team</InputLabel>
-            <Select value={selectedTeam} label="Team" onChange={(e) => setSelectedTeam(e.target.value)}>
+            <Select value={selectedTeam} label="Team" onChange={(e) => { setSelectedTeam(e.target.value); setPage(0) }}>
               {teams.map((t) => <MenuItem key={t.id} value={String(t.id)}>{t.name} ({t.memberCount})</MenuItem>)}
             </Select>
           </FormControl>
@@ -120,8 +129,9 @@ export default function ProjectsPage() {
         {snack && <Alert severity={snack.severity} onClose={() => setSnack(null)} sx={{ mb: 2 }}>{snack.message}</Alert>}
 
         {loading ? <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}><CircularProgress /></Box>
-          : projects.length === 0 ? <Box sx={{ textAlign: 'center', py: 6, color: 'text.secondary' }}><Typography variant="body2">No projects in this team. {canCreate && 'Create one.'}</Typography></Box>
+          : projects.length === 0 ? <Box sx={{ textAlign: 'center', py: 6, color: 'text.secondary' }}><Typography variant="body2">No projects on this page. {canCreate && 'Create one.'}</Typography></Box>
           : (
+            <>
             <Table size="small">
               <TableHead><TableRow><TableCell>Name</TableCell><TableCell>Status</TableCell><TableCell>Description</TableCell><TableCell>Created</TableCell><TableCell align="right">Actions</TableCell></TableRow></TableHead>
               <TableBody>
@@ -141,6 +151,8 @@ export default function ProjectsPage() {
                 ))}
               </TableBody>
             </Table>
+            <PagedControls total={total} page={page} rowsPerPage={rowsPerPage} onPageChange={setPage} onRowsPerPageChange={(n) => { setRowsPerPage(n); setPage(0) }} />
+            </>
           )}
       </CardContent></Card>
 

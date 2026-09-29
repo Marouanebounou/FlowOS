@@ -10,6 +10,8 @@ import com.example.flowos.Repositories.ProjectRepository;
 import com.example.flowos.Repositories.TeamRepository;
 import com.example.flowos.Repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,6 +35,13 @@ public class ProjectService {
         if (!isAdmin(email, organisationId)) permissionSecurity.requirePermission(email, organisationId, "projects.read");
         findTeam(organisationId, teamId);
         return projectRepository.findByOrganisationIdAndTeamId(organisationId, teamId).stream().map(ProjectResponse::from).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public Page<ProjectResponse> list(String email, Long organisationId, Long teamId, Pageable pageable) {
+        if (!isAdmin(email, organisationId)) permissionSecurity.requirePermission(email, organisationId, "projects.read");
+        findTeam(organisationId, teamId);
+        return projectRepository.findByOrganisationIdAndTeamId(organisationId, teamId, pageable).map(ProjectResponse::from);
     }
 
     @Transactional

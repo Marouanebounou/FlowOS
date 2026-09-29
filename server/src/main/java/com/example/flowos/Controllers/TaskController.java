@@ -3,15 +3,18 @@ package com.example.flowos.Controllers;
 import com.example.flowos.Dto.TaskRequest;
 import com.example.flowos.Dto.TaskResponse;
 import com.example.flowos.Services.TaskService;
+import com.example.flowos.Utils.PaginationUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/organisations/{organisationId}/teams/{teamId}/tasks")
@@ -20,12 +23,13 @@ public class TaskController {
     private final TaskService taskService;
 
     @GetMapping
-    public ResponseEntity<List<TaskResponse>> list(
+    public ResponseEntity<Page<TaskResponse>> list(
         Authentication authentication,
         @PathVariable Long organisationId,
-        @PathVariable Long teamId
+        @PathVariable Long teamId,
+        @PageableDefault(size = 20) Pageable pageable
     ) {
-        return ResponseEntity.ok(taskService.list(authentication.getName(), organisationId, teamId));
+        return ResponseEntity.ok(taskService.list(authentication.getName(), organisationId, teamId, PaginationUtils.normalize(pageable)));
     }
 
     @PostMapping

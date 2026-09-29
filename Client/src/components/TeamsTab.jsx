@@ -4,17 +4,24 @@ import {
   Table, TableHead, TableRow, TableCell, TableBody, Chip, Alert, CircularProgress, IconButton, Tooltip, MenuItem, Select, FormControl, InputLabel, Collapse
 } from '@mui/material'
 import { Add, Edit, Delete, GroupAdd, PersonRemove, Star, ExpandMore, ExpandLess, Refresh } from '@mui/icons-material'
-import { api } from '../api/client'
+import { api, parsePage } from '../api/client'
 import { teamSchema } from '../validation/schemas'
 import { getError } from '../validation/validate'
+import PagedControls from './Pagination'
 
 export default function TeamsTab({ organisationId, canRead, canCreate, canUpdate, canDelete, canAddMember, canRemoveMember, canAssignLeader }) {
   const [teams, setTeams] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [filter, setFilter] = useState('')
+  const [page, setPage] = useState(0)
+  const [rowsPerPage, setRowsPerPage] = useState(10)
+  const [total, setTotal] = useState(0)
   const [expanded, setExpanded] = useState(null) 
   const [membersByTeam, setMembersByTeam] = useState({}) 
+  const [membersTotalByTeam, setMembersTotalByTeam] = useState({})
+  const [membersPageByTeam, setMembersPageByTeam] = useState({})
+  const [membersSizeByTeam, setMembersSizeByTeam] = useState({})
   const [membersLoading, setMembersLoading] = useState({})
   const [orgMembers, setOrgMembers] = useState([]) 
   const [snack, setSnack] = useState(null)
@@ -31,31 +38,45 @@ export default function TeamsTab({ organisationId, canRead, canCreate, canUpdate
   const fetchTeams = useCallback(async () => {
     if (!canRead) { setLoading(false); return }
     setLoading(true); setError(null)
-    const res = await api.listTeams(organisationId)
-    if (res.status === 200 && Array.isArray(res.data)) setTeams(res.data)
+    const res = await api.listTeams(organisationId, { page, size: rowsPerPage })
+    if (res.status === 200 && res.data) {
+      const paged = parsePage(res.data)
+      setTeams(paged.content)
+      setTotal(paged.totalElements ?? paged.content.length)
+    }
     else if (res.status === 403) setError('You lack permission: team.read')
     else setError(res.error?.message || `Failed to load teams (${res.status})`)
     setLoading(false)
-  }, [organisationId, canRead])
+  }, [organisationId, canRead, page, rowsPerPage])
 
   const fetchOrgMembers = useCallback(async () => {
     if (!canAddMember) return
-    const res = await api.listOrganizationUsers(organisationId)
-    if (res.status === 200) setOrgMembers(res.data)
+    const res = await api.listOrganizationUsers(organisationId, { page: 0, size: 100 })
+    if (res.status === 200) setOrgMembers(parsePage(res.data).content)
   }, [organisationId, canAddMember])
 
   useEffect(() => { fetchTeams() }, [fetchTeams])
   useEffect(() => { fetchOrgMembers() }, [fetchOrgMembers])
 
+  async function loadTeamMembers(teamId, memberPage = 0, memberSize = 10) {
+    setMembersLoading((m) => ({ ...m, [teamId]: true }))
+    const res = await api.listTeamMembers(organisationId, teamId, { page: memberPage, size: memberSize })
+    setMembersLoading((m) => ({ ...m, [teamId]: false }))
+    if (res.status === 200) {
+      const paged = parsePage(res.data)
+      setMembersByTeam((prev) => ({ ...prev, [teamId]: paged.content }))
+      setMembersTotalByTeam((prev) => ({ ...prev, [teamId]: paged.totalElements ?? paged.content.length }))
+      setMembersPageByTeam((prev) => ({ ...prev, [teamId]: memberPage }))
+      setMembersSizeByTeam((prev) => ({ ...prev, [teamId]: memberSize }))
+    }
+    else setMembersByTeam((prev) => ({ ...prev, [teamId]: [] }))
+  }
+
   async function toggleMembers(teamId) {
     if (expanded === teamId) { setExpanded(null); return }
     setExpanded(teamId)
     if (membersByTeam[teamId]) return
-    setMembersLoading((m) => ({ ...m, [teamId]: true }))
-    const res = await api.listTeamMembers(organisationId, teamId)
-    setMembersLoading((m) => ({ ...m, [teamId]: false }))
-    if (res.status === 200) setMembersByTeam((prev) => ({ ...prev, [teamId]: res.data }))
-    else setMembersByTeam((prev) => ({ ...prev, [teamId]: [] }))
+    await loadTeamMembers(teamId, 0, 10)
   }
 
   function openCreate() {
@@ -98,8 +119,7 @@ export default function TeamsTab({ organisationId, canRead, canCreate, canUpdate
       setSnack({ severity: 'success', message: 'Member added' })
       setSelectedUserId('')
 
-      const mRes = await api.listTeamMembers(organisationId, teamId)
-      if (mRes.status === 200) setMembersByTeam((prev) => ({ ...prev, [teamId]: mRes.data }))
+      await loadTeamMembers(teamId, membersPageByTeam[teamId] || 0, membersSizeByTeam[teamId] || 10)
 
       fetchTeams()
     } else setSnack({ severity: 'error', message: res.error?.message || 'Failed to add' })
@@ -119,20 +139,21 @@ export default function TeamsTab({ organisationId, canRead, canCreate, canUpdate
     const res = await api.assignTeamLeader(organisationId, teamId, userId)
     if (res.status === 200) {
       setSnack({ severity: 'success', message: 'Leader assigned' })
-      const mRes = await api.listTeamMembers(organisationId, teamId)
-      if (mRes.status === 200) setMembersByTeam((prev) => ({ ...prev, [teamId]: mRes.data }))
+      await loadTeamMembers(teamId, membersPageByTeam[teamId] || 0, membersSizeByTeam[teamId] || 10)
     } else setSnack({ severity: 'error', message: res.error?.message || 'Assign failed' })
   }
 
   if (!canRead) return <Alert severity="info">You lack permission: team.read</Alert>
 
+  // NOTE: `filter` is client-side only for the current page. Use server-side
+  // search via a dedicated endpoint once the backend supports team name search.
   const filtered = teams.filter((t) => !filter || t.name.toLowerCase().includes(filter.toLowerCase()))
 
   return (
     <Box>
       <Card sx={{ mb: 2 }}><CardContent>
         <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mb: 2, flexWrap: 'wrap' }}>
-          <TextField size="small" placeholder="Search team name" value={filter} onChange={(e) => setFilter(e.target.value)} sx={{ minWidth: 200 }} />
+          <TextField size="small" placeholder="Filter current page" value={filter} onChange={(e) => setFilter(e.target.value)} sx={{ minWidth: 200 }} />
           <Box sx={{ flexGrow: 1 }} />
           <Tooltip title="Refresh"><IconButton onClick={fetchTeams} size="small"><Refresh /></IconButton></Tooltip>
           {canCreate && <Button variant="contained" startIcon={<Add />} onClick={openCreate}>Create team</Button>}
@@ -140,8 +161,9 @@ export default function TeamsTab({ organisationId, canRead, canCreate, canUpdate
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
         {snack && <Alert severity={snack.severity} onClose={() => setSnack(null)} sx={{ mb: 2 }}>{snack.message}</Alert>}
         {loading ? <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}><CircularProgress /></Box>
-          : filtered.length === 0 ? <Box sx={{ textAlign: 'center', py: 6, color: 'text.secondary' }}><Typography variant="body2">No teams yet. {canCreate && 'Create one to get started.'}</Typography></Box>
+          : filtered.length === 0 ? <Box sx={{ textAlign: 'center', py: 6, color: 'text.secondary' }}><Typography variant="body2">No teams on this page. {canCreate && 'Create one to get started.'}</Typography></Box>
           : (
+            <>
             <Table size="small">
               <TableHead><TableRow><TableCell>Team</TableCell><TableCell>Members</TableCell><TableCell>Created</TableCell><TableCell align="right">Actions</TableCell></TableRow></TableHead>
               <TableBody>
@@ -189,6 +211,7 @@ export default function TeamsTab({ organisationId, canRead, canCreate, canUpdate
                             {membersLoading[team.id] ? <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}><CircularProgress size={20} /></Box>
                               : (membersByTeam[team.id] || []).length === 0 ? <Typography variant="body2" color="text.secondary">No members in this team.</Typography>
                               : (
+                                <>
                                 <Table size="small" sx={{ bgcolor: 'background.paper' }}>
                                   <TableHead><TableRow><TableCell>User</TableCell><TableCell>Email</TableCell><TableCell>Leader</TableCell><TableCell>Added</TableCell><TableCell align="right">Actions</TableCell></TableRow></TableHead>
                                   <TableBody>
@@ -208,6 +231,14 @@ export default function TeamsTab({ organisationId, canRead, canCreate, canUpdate
                                     ))}
                                   </TableBody>
                                 </Table>
+                                <PagedControls
+                                  total={membersTotalByTeam[team.id] ?? (membersByTeam[team.id] || []).length}
+                                  page={membersPageByTeam[team.id] || 0}
+                                  rowsPerPage={membersSizeByTeam[team.id] || 10}
+                                  onPageChange={(next) => loadTeamMembers(team.id, next, membersSizeByTeam[team.id] || 10)}
+                                  onRowsPerPageChange={(next) => loadTeamMembers(team.id, 0, next)}
+                                />
+                                </>
                               )}
                           </Box>
                         </Collapse>
@@ -217,6 +248,14 @@ export default function TeamsTab({ organisationId, canRead, canCreate, canUpdate
                 ))}
               </TableBody>
             </Table>
+            <PagedControls
+              total={total}
+              page={page}
+              rowsPerPage={rowsPerPage}
+              onPageChange={setPage}
+              onRowsPerPageChange={(next) => { setRowsPerPage(next); setPage(0) }}
+            />
+            </>
           )}
       </CardContent></Card>
 

@@ -11,6 +11,8 @@ import com.example.flowos.Repositories.OrganisationRepository;
 import com.example.flowos.Repositories.TeamRepository;
 import com.example.flowos.Repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,6 +34,13 @@ public class DocumentService {
         if (!isAdmin(email, organisationId)) permissionSecurity.requirePermission(email, organisationId, "documents.read");
         if (teamId != null) return documentRepository.findByOrganisationIdAndTeamIdOrderByCreatedAtDesc(organisationId, teamId).stream().map(DocumentResponse::from).toList();
         return documentRepository.findByOrganisationIdOrderByCreatedAtDesc(organisationId).stream().map(DocumentResponse::from).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public Page<DocumentResponse> list(String email, Long organisationId, Long teamId, Pageable pageable) {
+        if (!isAdmin(email, organisationId)) permissionSecurity.requirePermission(email, organisationId, "documents.read");
+        if (teamId != null) return documentRepository.findByOrganisationIdAndTeamIdOrderByCreatedAtDesc(organisationId, teamId, pageable).map(DocumentResponse::from);
+        return documentRepository.findByOrganisationIdOrderByCreatedAtDesc(organisationId, pageable).map(DocumentResponse::from);
     }
 
     @Transactional

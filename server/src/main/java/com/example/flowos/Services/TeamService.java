@@ -12,6 +12,8 @@ import com.example.flowos.Repositories.OrganisationRepository;
 import com.example.flowos.Repositories.TeamRepository;
 import com.example.flowos.Repositories.TeamMemberRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,6 +40,14 @@ public class TeamService {
     }
 
     @Transactional(readOnly = true)
+    public Page<TeamResponse> list(String email, Long organisationId, Pageable pageable) {
+        permissionSecurity.requirePermission(email, organisationId, "team.read");
+        findOrganisation(organisationId);
+        return teamRepository.findByOrganisationId(organisationId, pageable)
+            .map(TeamResponse::from);
+    }
+
+    @Transactional(readOnly = true)
     public TeamResponse get(String email, Long organisationId, Long teamId) {
         permissionSecurity.requirePermission(email, organisationId, "team.read");
         return TeamResponse.from(findTeam(organisationId, teamId));
@@ -51,6 +61,14 @@ public class TeamService {
             .stream()
             .map(TeamMemberResponse::from)
             .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public Page<TeamMemberResponse> listMembers(String email, Long organisationId, Long teamId, Pageable pageable) {
+        permissionSecurity.requirePermission(email, organisationId, "team.read");
+        findTeam(organisationId, teamId);
+        return teamMemberRepository.findByTeamId(teamId, pageable)
+            .map(TeamMemberResponse::from);
     }
 
     @Transactional

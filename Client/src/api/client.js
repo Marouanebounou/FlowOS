@@ -80,6 +80,22 @@ async function request(path, options = {}) {
   }
 }
 
+export function parsePage(data) {
+  if (Array.isArray(data)) {
+    return { content: data, totalElements: data.length, totalPages: 1, number: 0, size: data.length }
+  }
+  if (data && Array.isArray(data.content)) {
+    return data
+  }
+  return { content: [], totalElements: 0, totalPages: 0, number: 0, size: 0 }
+}
+
+function appendPageParams(qs, paging = {}) {
+  if (paging.page != null && paging.page !== '') qs.set('page', String(paging.page))
+  if (paging.size != null && paging.size !== '') qs.set('size', String(paging.size))
+  if (paging.sort) qs.set('sort', paging.sort)
+}
+
 export const api = {
   setToken(token) {
     bearerToken = token
@@ -161,6 +177,7 @@ export const api = {
     if (filters.name) qs.set('name', filters.name)
     if (filters.email) qs.set('email', filters.email)
     if (filters.active != null && filters.active !== '') qs.set('active', String(filters.active))
+    appendPageParams(qs, filters)
     const suffix = qs.toString() ? `?${qs}` : ''
     return request(`/organisations/${organisationId}/users${suffix}`)
   },
@@ -194,8 +211,11 @@ export const api = {
   getMyPermissions(organisationId) {
     return request(`/organisations/${organisationId}/me/permissions`)
   },
-  listTeams(organisationId) {
-    return request(`/organisations/${organisationId}/teams`)
+  listTeams(organisationId, paging = {}) {
+    const qs = new URLSearchParams()
+    appendPageParams(qs, paging)
+    const suffix = qs.toString() ? `?${qs}` : ''
+    return request(`/organisations/${organisationId}/teams${suffix}`)
   },
   getTeam(organisationId, teamId) {
     return request(`/organisations/${organisationId}/teams/${teamId}`)
@@ -215,8 +235,11 @@ export const api = {
   deleteTeam(organisationId, teamId) {
     return request(`/organisations/${organisationId}/teams/${teamId}`, { method: 'DELETE' })
   },
-  listTeamMembers(organisationId, teamId) {
-    return request(`/organisations/${organisationId}/teams/${teamId}/members`)
+  listTeamMembers(organisationId, teamId, paging = {}) {
+    const qs = new URLSearchParams()
+    appendPageParams(qs, paging)
+    const suffix = qs.toString() ? `?${qs}` : ''
+    return request(`/organisations/${organisationId}/teams/${teamId}/members${suffix}`)
   },
   addTeamMember(organisationId, teamId, userId) {
     return request(`/organisations/${organisationId}/teams/${teamId}/members`, {
@@ -231,8 +254,11 @@ export const api = {
     return request(`/organisations/${organisationId}/teams/${teamId}/leader/${userId}`, { method: 'PUT' })
   },
 
-  listTasks(organisationId, teamId) {
-    return request(`/organisations/${organisationId}/teams/${teamId}/tasks`)
+  listTasks(organisationId, teamId, paging = {}) {
+    const qs = new URLSearchParams()
+    appendPageParams(qs, paging)
+    const suffix = qs.toString() ? `?${qs}` : ''
+    return request(`/organisations/${organisationId}/teams/${teamId}/tasks${suffix}`)
   },
   createTask(organisationId, teamId, data) {
     return request(`/organisations/${organisationId}/teams/${teamId}/tasks`, { method: 'POST', body: JSON.stringify(data) })
@@ -246,8 +272,11 @@ export const api = {
   assignTask(organisationId, teamId, taskId, userId) {
     return request(`/organisations/${organisationId}/teams/${teamId}/tasks/${taskId}/assign/${userId}`, { method: 'PUT' })
   },
-  listProjects(organisationId, teamId) {
-    return request(`/organisations/${organisationId}/teams/${teamId}/projects`)
+  listProjects(organisationId, teamId, paging = {}) {
+    const qs = new URLSearchParams()
+    appendPageParams(qs, paging)
+    const suffix = qs.toString() ? `?${qs}` : ''
+    return request(`/organisations/${organisationId}/teams/${teamId}/projects${suffix}`)
   },
   createProject(organisationId, teamId, data) {
     return request(`/organisations/${organisationId}/teams/${teamId}/projects`, { method: 'POST', body: JSON.stringify(data) })
@@ -258,9 +287,12 @@ export const api = {
   deleteProject(organisationId, teamId, projectId) {
     return request(`/organisations/${organisationId}/teams/${teamId}/projects/${projectId}`, { method: 'DELETE' })
   },
-  listCalendar(organisationId, teamId) {
-    const qs = teamId ? `?teamId=${teamId}` : ''
-    return request(`/organisations/${organisationId}/calendar${qs}`)
+  listCalendar(organisationId, teamId, paging = {}) {
+    const qs = new URLSearchParams()
+    if (teamId != null && teamId !== '') qs.set('teamId', String(teamId))
+    appendPageParams(qs, paging)
+    const suffix = qs.toString() ? `?${qs}` : ''
+    return request(`/organisations/${organisationId}/calendar${suffix}`)
   },
   createCalendarEvent(organisationId, data) {
     return request(`/organisations/${organisationId}/calendar`, { method: 'POST', body: JSON.stringify(data) })
@@ -271,9 +303,12 @@ export const api = {
   deleteCalendarEvent(organisationId, eventId) {
     return request(`/organisations/${organisationId}/calendar/${eventId}`, { method: 'DELETE' })
   },
-  listCrm(organisationId, teamId) {
-    const qs = teamId ? `?teamId=${teamId}` : ''
-    return request(`/organisations/${organisationId}/crm${qs}`)
+  listCrm(organisationId, teamId, paging = {}) {
+    const qs = new URLSearchParams()
+    if (teamId != null && teamId !== '') qs.set('teamId', String(teamId))
+    appendPageParams(qs, paging)
+    const suffix = qs.toString() ? `?${qs}` : ''
+    return request(`/organisations/${organisationId}/crm${suffix}`)
   },
   createCrmContact(organisationId, data) {
     return request(`/organisations/${organisationId}/crm`, { method: 'POST', body: JSON.stringify(data) })
@@ -284,9 +319,12 @@ export const api = {
   deleteCrmContact(organisationId, contactId) {
     return request(`/organisations/${organisationId}/crm/${contactId}`, { method: 'DELETE' })
   },
-  listDocuments(organisationId, teamId) {
-    const qs = teamId ? `?teamId=${teamId}` : ''
-    return request(`/organisations/${organisationId}/documents${qs}`)
+  listDocuments(organisationId, teamId, paging = {}) {
+    const qs = new URLSearchParams()
+    if (teamId != null && teamId !== '') qs.set('teamId', String(teamId))
+    appendPageParams(qs, paging)
+    const suffix = qs.toString() ? `?${qs}` : ''
+    return request(`/organisations/${organisationId}/documents${suffix}`)
   },
   createDocument(organisationId, data) {
     return request(`/organisations/${organisationId}/documents`, { method: 'POST', body: JSON.stringify(data) })

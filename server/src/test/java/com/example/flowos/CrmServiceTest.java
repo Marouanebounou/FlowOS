@@ -4,7 +4,6 @@ import com.example.flowos.Dto.CrmContactRequest;
 import com.example.flowos.Dto.CrmContactResponse;
 import com.example.flowos.Models.CrmContact;
 import com.example.flowos.Models.Organisation;
-import com.example.flowos.Models.Team;
 import com.example.flowos.Models.User;
 import com.example.flowos.Repositories.CrmContactRepository;
 import com.example.flowos.Repositories.OrganisationMemberRepository;

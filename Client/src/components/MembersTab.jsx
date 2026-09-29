@@ -29,8 +29,9 @@ import {
   InputLabel,
 } from '@mui/material'
 import { GroupAdd, Search, Block, CheckCircle, Refresh, Edit as EditIcon } from '@mui/icons-material'
-import { api } from '../api/client'
+import { api, parsePage } from '../api/client'
 import { useAuth } from '../contexts/AuthContext'
+import PagedControls from './Pagination'
 
 export default function MembersTab({ organisationId, isAdmin = true }) {
   const { user: currentUser } = useAuth()
@@ -38,6 +39,9 @@ export default function MembersTab({ organisationId, isAdmin = true }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [filters, setFilters] = useState({ name: '', email: '', active: '' })
+  const [page, setPage] = useState(0)
+  const [rowsPerPage, setRowsPerPage] = useState(10)
+  const [total, setTotal] = useState(0)
   const [roles, setRoles] = useState([])
   const [inviteOpen, setInviteOpen] = useState(false)
   const [inviteForm, setInviteForm] = useState({ email: '', roleId: '' })
@@ -59,21 +63,26 @@ export default function MembersTab({ organisationId, isAdmin = true }) {
       name: filters.name.trim() || undefined,
       email: filters.email.trim() || undefined,
       active: filters.active === '' ? undefined : filters.active === 'true',
+      page,
+      size: rowsPerPage,
     })
-    if (result.status === 200 && Array.isArray(result.data)) {
-      setMembers(result.data)
+    if (result.status === 200 && result.data) {
+      const paged = parsePage(result.data)
+      setMembers(paged.content)
+      setTotal(paged.totalElements ?? paged.content.length)
     } else if (result.status === 403) {
       setError('You lack permission to view members (requires organization admin)')
     } else {
       setError(result.error?.message || `Failed to load members (${result.status})`)
     }
     setLoading(false)
-  }, [organisationId, filters])
+  }, [organisationId, filters, page, rowsPerPage])
 
   const fetchRoles = useCallback(async () => {
     const result = await api.listRoles(organisationId)
-    if (result.status === 200 && Array.isArray(result.data)) {
-      setRoles(result.data)
+    if (result.status === 200) {
+      const paged = parsePage(result.data)
+      setRoles(paged.content)
     } else {
       setRoles([])
     }
@@ -192,7 +201,7 @@ export default function MembersTab({ organisationId, isAdmin = true }) {
               size="small"
               placeholder="Search name"
               value={filters.name}
-              onChange={(e) => setFilters((f) => ({ ...f, name: e.target.value }))}
+              onChange={(e) => { setPage(0); setFilters((f) => ({ ...f, name: e.target.value })) }}
               InputProps={{ startAdornment: <InputAdornment position="start"><Search fontSize="small" /></InputAdornment> }}
               sx={{ minWidth: 180 }}
             />
@@ -200,12 +209,12 @@ export default function MembersTab({ organisationId, isAdmin = true }) {
               size="small"
               placeholder="Search email"
               value={filters.email}
-              onChange={(e) => setFilters((f) => ({ ...f, email: e.target.value }))}
+              onChange={(e) => { setPage(0); setFilters((f) => ({ ...f, email: e.target.value })) }}
               sx={{ minWidth: 180 }}
             />
             <FormControl size="small" sx={{ minWidth: 140 }}>
               <InputLabel>Status</InputLabel>
-              <Select value={filters.active} label="Status" onChange={(e) => setFilters((f) => ({ ...f, active: e.target.value }))}>
+              <Select value={filters.active} label="Status" onChange={(e) => { setPage(0); setFilters((f) => ({ ...f, active: e.target.value })) }}>
                 <MenuItem value="">All</MenuItem>
                 <MenuItem value="true">Active</MenuItem>
                 <MenuItem value="false">Inactive</MenuItem>
@@ -277,6 +286,13 @@ export default function MembersTab({ organisationId, isAdmin = true }) {
                   })}
                 </TableBody>
               </Table>
+              <PagedControls
+                total={total}
+                page={page}
+                rowsPerPage={rowsPerPage}
+                onPageChange={setPage}
+                onRowsPerPageChange={(next) => { setRowsPerPage(next); setPage(0) }}
+              />
             </Box>
           )}
           <Alert severity="warning" sx={{ mt: 2 }}>

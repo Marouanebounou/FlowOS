@@ -11,6 +11,8 @@ import com.example.flowos.Repositories.OrganisationRepository;
 import com.example.flowos.Repositories.TeamRepository;
 import com.example.flowos.Repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,6 +37,13 @@ public class CrmService {
         if (!isAdmin(email, organisationId)) permissionSecurity.requirePermission(email, organisationId, "crm.read");
         if (teamId != null) return crmContactRepository.findByOrganisationIdAndTeamIdOrderByCreatedAtDesc(organisationId, teamId).stream().map(CrmContactResponse::from).toList();
         return crmContactRepository.findByOrganisationIdOrderByCreatedAtDesc(organisationId).stream().map(CrmContactResponse::from).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public Page<CrmContactResponse> list(String email, Long organisationId, Long teamId, Pageable pageable) {
+        if (!isAdmin(email, organisationId)) permissionSecurity.requirePermission(email, organisationId, "crm.read");
+        if (teamId != null) return crmContactRepository.findByOrganisationIdAndTeamIdOrderByCreatedAtDesc(organisationId, teamId, pageable).map(CrmContactResponse::from);
+        return crmContactRepository.findByOrganisationIdOrderByCreatedAtDesc(organisationId, pageable).map(CrmContactResponse::from);
     }
 
     @Transactional

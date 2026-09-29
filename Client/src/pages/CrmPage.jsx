@@ -5,10 +5,11 @@ import {
   Table, TableHead, TableRow, TableCell, TableBody, Chip, Alert, CircularProgress, IconButton, Tooltip, Select, MenuItem, FormControl, InputLabel
 } from '@mui/material'
 import { Add, Edit, Delete, Refresh, People } from '@mui/icons-material'
-import { api } from '../api/client'
+import { api, parsePage } from '../api/client'
 import { useOrganisation } from '../contexts/OrganisationContext'
 import { crmSchema } from '../validation/schemas'
 import { getError } from '../validation/validate'
+import PagedControls from '../components/Pagination'
 
 const STATUSES = ['NEW', 'CONTACTED', 'QUALIFIED', 'CUSTOMER']
 const STATUS_COLOR = { NEW: 'default', CONTACTED: 'info', QUALIFIED: 'warning', CUSTOMER: 'success' }
@@ -27,6 +28,9 @@ export default function CrmPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [snack, setSnack] = useState(null)
+  const [page, setPage] = useState(0)
+  const [rowsPerPage, setRowsPerPage] = useState(10)
+  const [total, setTotal] = useState(0)
 
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState(null)
@@ -50,19 +54,23 @@ export default function CrmPage() {
 
   const fetchTeams = useCallback(async () => {
     if (!effectiveOrgId) return
-    const res = await api.listTeams(effectiveOrgId)
-    if (res.status === 200) setTeams(res.data)
+    const res = await api.listTeams(effectiveOrgId, { page: 0, size: 100 })
+    if (res.status === 200) setTeams(parsePage(res.data).content)
   }, [effectiveOrgId])
 
   const fetchCrm = useCallback(async () => {
     if (!effectiveOrgId || !canRead) { setLoading(false); return }
     setLoading(true); setError(null)
-    const res = await api.listCrm(effectiveOrgId, filterTeam ? Number(filterTeam) : null)
-    if (res.status === 200 && Array.isArray(res.data)) setContacts(res.data)
+    const res = await api.listCrm(effectiveOrgId, filterTeam ? Number(filterTeam) : null, { page, size: rowsPerPage })
+    if (res.status === 200 && res.data) {
+      const paged = parsePage(res.data)
+      setContacts(paged.content)
+      setTotal(paged.totalElements ?? paged.content.length)
+    }
     else if (res.status === 403) setError('You lack permission: crm.read')
     else setError(res.error?.message || `Failed to load CRM (${res.status})`)
     setLoading(false)
-  }, [effectiveOrgId, filterTeam, canRead])
+  }, [effectiveOrgId, filterTeam, canRead, page, rowsPerPage])
 
   useEffect(() => { fetchPerms(); fetchTeams() }, [fetchPerms, fetchTeams])
   useEffect(() => { fetchCrm() }, [fetchCrm])
@@ -114,7 +122,7 @@ export default function CrmPage() {
         <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap', mb: 2 }}>
           <FormControl size="small" sx={{ minWidth: 200 }}>
             <InputLabel>Filter by team</InputLabel>
-            <Select value={filterTeam} label="Filter by team" onChange={(e) => setFilterTeam(e.target.value)}>
+            <Select value={filterTeam} label="Filter by team" onChange={(e) => { setFilterTeam(e.target.value); setPage(0) }}>
               <MenuItem value="">All teams</MenuItem>
               {teams.map((t) => <MenuItem key={t.id} value={String(t.id)}>{t.name}</MenuItem>)}
             </Select>
@@ -129,7 +137,7 @@ export default function CrmPage() {
         {snack && <Alert severity={snack.severity} onClose={() => setSnack(null)} sx={{ mb: 2 }}>{snack.message}</Alert>}
 
         {loading ? <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}><CircularProgress /></Box>
-          : contacts.length === 0 ? <Box sx={{ textAlign: 'center', py: 6, color: 'text.secondary' }}><Typography variant="body2">No contacts. {canCreate && 'Add one.'}</Typography></Box>
+          : contacts.length === 0 ? <Box sx={{ textAlign: 'center', py: 6, color: 'text.secondary' }}><Typography variant="body2">No contacts on this page. {canCreate && 'Add one.'}</Typography></Box>
           : (
             <>
               <Box sx={{ display: 'flex', gap: 2, mb: 2, flexWrap: 'wrap' }}>
@@ -137,6 +145,7 @@ export default function CrmPage() {
                   const count = contacts.filter((c) => c.status === s).length
                   return <Chip key={s} label={`${s} (${count})`} color={STATUS_COLOR[s]} variant={s === 'CUSTOMER' ? 'filled' : 'outlined'} size="small" />
                 })}
+                <Typography variant="caption" color="text.secondary" sx={{ alignSelf: 'center' }}>Counts reflect current page only</Typography>
               </Box>
               <Table size="small">
                 <TableHead><TableRow><TableCell>Name</TableCell><TableCell>Company</TableCell><TableCell>Contact</TableCell><TableCell>Status</TableCell><TableCell>Team</TableCell><TableCell align="right">Actions</TableCell></TableRow></TableHead>
@@ -158,6 +167,7 @@ export default function CrmPage() {
                   ))}
                 </TableBody>
               </Table>
+              <PagedControls total={total} page={page} rowsPerPage={rowsPerPage} onPageChange={setPage} onRowsPerPageChange={(n) => { setRowsPerPage(n); setPage(0) }} />
             </>
           )}
       </CardContent></Card>

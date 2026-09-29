@@ -5,10 +5,11 @@ import {
   Table, TableHead, TableRow, TableCell, TableBody, Chip, Alert, CircularProgress, IconButton, Tooltip, Select, MenuItem, FormControl, InputLabel, Link as MuiLink
 } from '@mui/material'
 import { Add, Edit, Delete, Refresh, Description, Link as LinkIcon } from '@mui/icons-material'
-import { api } from '../api/client'
+import { api, parsePage } from '../api/client'
 import { useOrganisation } from '../contexts/OrganisationContext'
 import { documentSchema } from '../validation/schemas'
 import { getError } from '../validation/validate'
+import PagedControls from '../components/Pagination'
 
 export default function DocumentsPage() {
   const { organisationId } = useParams()
@@ -24,6 +25,9 @@ export default function DocumentsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [snack, setSnack] = useState(null)
+  const [page, setPage] = useState(0)
+  const [rowsPerPage, setRowsPerPage] = useState(10)
+  const [total, setTotal] = useState(0)
 
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState(null)
@@ -47,19 +51,23 @@ export default function DocumentsPage() {
 
   const fetchTeams = useCallback(async () => {
     if (!effectiveOrgId) return
-    const res = await api.listTeams(effectiveOrgId)
-    if (res.status === 200) setTeams(res.data)
+    const res = await api.listTeams(effectiveOrgId, { page: 0, size: 100 })
+    if (res.status === 200) setTeams(parsePage(res.data).content)
   }, [effectiveOrgId])
 
   const fetchDocs = useCallback(async () => {
     if (!effectiveOrgId || !canRead) { setLoading(false); return }
     setLoading(true); setError(null)
-    const res = await api.listDocuments(effectiveOrgId, filterTeam ? Number(filterTeam) : null)
-    if (res.status === 200 && Array.isArray(res.data)) setDocs(res.data)
+    const res = await api.listDocuments(effectiveOrgId, filterTeam ? Number(filterTeam) : null, { page, size: rowsPerPage })
+    if (res.status === 200 && res.data) {
+      const paged = parsePage(res.data)
+      setDocs(paged.content)
+      setTotal(paged.totalElements ?? paged.content.length)
+    }
     else if (res.status === 403) setError('You lack permission: documents.read')
     else setError(res.error?.message || `Failed to load documents (${res.status})`)
     setLoading(false)
-  }, [effectiveOrgId, filterTeam, canRead])
+  }, [effectiveOrgId, filterTeam, canRead, page, rowsPerPage])
 
   useEffect(() => { fetchPerms(); fetchTeams() }, [fetchPerms, fetchTeams])
   useEffect(() => { fetchDocs() }, [fetchDocs])
@@ -110,7 +118,7 @@ export default function DocumentsPage() {
         <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap', mb: 2 }}>
           <FormControl size="small" sx={{ minWidth: 200 }}>
             <InputLabel>Filter by team</InputLabel>
-            <Select value={filterTeam} label="Filter by team" onChange={(e) => setFilterTeam(e.target.value)}>
+            <Select value={filterTeam} label="Filter by team" onChange={(e) => { setFilterTeam(e.target.value); setPage(0) }}>
               <MenuItem value="">All teams</MenuItem>
               {teams.map((t) => <MenuItem key={t.id} value={String(t.id)}>{t.name}</MenuItem>)}
             </Select>
@@ -125,8 +133,9 @@ export default function DocumentsPage() {
         {snack && <Alert severity={snack.severity} onClose={() => setSnack(null)} sx={{ mb: 2 }}>{snack.message}</Alert>}
 
         {loading ? <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}><CircularProgress /></Box>
-          : docs.length === 0 ? <Box sx={{ textAlign: 'center', py: 6, color: 'text.secondary' }}><Typography variant="body2">No documents. {canCreate && 'Add one.'}</Typography></Box>
+          : docs.length === 0 ? <Box sx={{ textAlign: 'center', py: 6, color: 'text.secondary' }}><Typography variant="body2">No documents on this page. {canCreate && 'Add one.'}</Typography></Box>
           : (
+            <>
             <Table size="small">
               <TableHead><TableRow><TableCell>Name</TableCell><TableCell>File</TableCell><TableCell>Team</TableCell><TableCell>Size</TableCell><TableCell>Uploaded</TableCell><TableCell align="right">Actions</TableCell></TableRow></TableHead>
               <TableBody>
@@ -156,6 +165,8 @@ export default function DocumentsPage() {
                 ))}
               </TableBody>
             </Table>
+            <PagedControls total={total} page={page} rowsPerPage={rowsPerPage} onPageChange={setPage} onRowsPerPageChange={(n) => { setRowsPerPage(n); setPage(0) }} />
+            </>
           )}
       </CardContent></Card>
 

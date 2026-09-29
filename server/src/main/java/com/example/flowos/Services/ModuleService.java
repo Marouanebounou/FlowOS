@@ -33,7 +33,6 @@ public class ModuleService {
     private final UserRepository userRepository;
     private final OrganisationRepository organisationRepository;
     private final OrganisationMemberRepository organisationMemberRepository;
-    private final PermissionSecurity permissionSecurity;
     private final AuditLogService auditLogService;
 
     @Transactional(readOnly = true)

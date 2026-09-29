@@ -11,6 +11,8 @@ import com.example.flowos.Repositories.OrganisationRepository;
 import com.example.flowos.Repositories.TeamRepository;
 import com.example.flowos.Repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,6 +38,15 @@ public class CalendarService {
             return calendarEventRepository.findByOrganisationIdAndTeamIdOrderByStartAtAsc(organisationId, teamId).stream().map(CalendarEventResponse::from).toList();
         }
         return calendarEventRepository.findByOrganisationIdOrderByStartAtAsc(organisationId).stream().map(CalendarEventResponse::from).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public Page<CalendarEventResponse> list(String email, Long organisationId, Long teamId, Pageable pageable) {
+        if (!isAdmin(email, organisationId)) permissionSecurity.requirePermission(email, organisationId, "calendar.read");
+        if (teamId != null) {
+            return calendarEventRepository.findByOrganisationIdAndTeamIdOrderByStartAtAsc(organisationId, teamId, pageable).map(CalendarEventResponse::from);
+        }
+        return calendarEventRepository.findByOrganisationIdOrderByStartAtAsc(organisationId, pageable).map(CalendarEventResponse::from);
     }
 
     @Transactional

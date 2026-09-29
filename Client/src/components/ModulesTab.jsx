@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { Box, Card, CardContent, Typography, Button, Alert, CircularProgress, Chip, Switch, Grid, Divider, Select, MenuItem, FormControl, InputLabel, IconButton, Tooltip } from '@mui/material'
 import { Extension, Add, Delete, PowerSettingsNew, Person, Group, PersonAdd } from '@mui/icons-material'
-import { api } from '../api/client'
+import { api, parsePage } from '../api/client'
 import { useAuth } from '../contexts/AuthContext'
 
 const ICONS = {
@@ -36,9 +36,9 @@ export default function ModulesTab({ organisationId, isAdmin }) {
   }, [organisationId])
 
   const fetchMembersTeams = useCallback(async () => {
-    const [memRes, teamRes] = await Promise.all([api.listOrganizationUsers(organisationId), api.listTeams(organisationId)])
-    if (memRes.status === 200) setMembers(memRes.data)
-    if (teamRes.status === 200) setTeams(teamRes.data)
+    const [memRes, teamRes] = await Promise.all([api.listOrganizationUsers(organisationId, { page: 0, size: 100 }), api.listTeams(organisationId, { page: 0, size: 100 })])
+    if (memRes.status === 200) setMembers(parsePage(memRes.data).content)
+    if (teamRes.status === 200) setTeams(parsePage(teamRes.data).content)
   }, [organisationId])
 
   const fetchModuleTeams = useCallback(async () => {

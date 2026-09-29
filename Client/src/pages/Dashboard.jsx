@@ -6,7 +6,7 @@ import { Add, ArrowForward, Schedule, TaskAlt, Business, Group, Shield, Trending
 import { Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useOrganisation } from '../contexts/OrganisationContext'
-import { api } from '../api/client'
+import { api, parsePage } from '../api/client'
 
 export default function Dashboard() {
   const { user } = useAuth()
@@ -23,14 +23,14 @@ export default function Dashboard() {
       if (!activeId) { setStats({ members: null, teams: null, roles: null, loading: false }); return }
       setStats((s) => ({ ...s, loading: true }))
       const [membersRes, teamsRes, rolesRes] = await Promise.all([
-        api.listOrganizationUsers(activeId),
-        api.listTeams(activeId),
+        api.listOrganizationUsers(activeId, { page: 0, size: 1 }),
+        api.listTeams(activeId, { page: 0, size: 1 }),
         api.listRolesFull(activeId),
       ])
       if (cancelled) return
       setStats({
-        members: membersRes.status === 200 ? membersRes.data.length : null,
-        teams: teamsRes.status === 200 ? teamsRes.data.length : null,
+        members: membersRes.status === 200 ? (parsePage(membersRes.data).totalElements ?? parsePage(membersRes.data).content.length) : null,
+        teams: teamsRes.status === 200 ? (parsePage(teamsRes.data).totalElements ?? parsePage(teamsRes.data).content.length) : null,
         roles: rolesRes.status === 200 ? rolesRes.data.length : null,
         loading: false,
       })

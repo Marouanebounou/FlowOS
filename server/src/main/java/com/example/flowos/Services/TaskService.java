@@ -11,6 +11,8 @@ import com.example.flowos.Repositories.TaskRepository;
 import com.example.flowos.Repositories.TeamRepository;
 import com.example.flowos.Repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,6 +38,14 @@ public class TaskService {
         findTeam(organisationId, teamId);
         return taskRepository.findByOrganisationIdAndTeamId(organisationId, teamId)
             .stream().map(TaskResponse::from).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public Page<TaskResponse> list(String email, Long organisationId, Long teamId, Pageable pageable) {
+        if (!isAdmin(email, organisationId)) permissionSecurity.requirePermission(email, organisationId, "tasks.read");
+        findTeam(organisationId, teamId);
+        return taskRepository.findByOrganisationIdAndTeamId(organisationId, teamId, pageable)
+            .map(TaskResponse::from);
     }
 
     @Transactional(readOnly = true)
