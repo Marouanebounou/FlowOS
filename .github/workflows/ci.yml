@@ -15,7 +15,9 @@ jobs:
           java-version: "21"
           cache: maven
       - name: Build and test backend
-        run: ./mvnw -q test
+        run: |
+          chmod +x mvnw
+          ./mvnw -q test
         working-directory: server
 
   frontend:
